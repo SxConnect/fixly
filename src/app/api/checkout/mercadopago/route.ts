@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { createCheckoutPreference } from '@/lib/mercadopago'
+import { createCheckoutPreference, isMercadoPagoConfigured } from '@/lib/mercadopago'
 
 export async function POST(request: Request) {
   try {
     const session = await getSession()
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Sem credencial o checkout não pode começar: nem cria pedido
+    if (!isMercadoPagoConfigured()) {
+      return NextResponse.json(
+        { error: 'Pagamento indisponível no momento. Tente novamente mais tarde.' },
+        { status: 503 }
+      )
     }
 
     const body = await request.json()

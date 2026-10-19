@@ -3,6 +3,8 @@ import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { CheckoutButton } from './_checkout-button'
+import { SubscriptionStatus } from './_subscription-status'
+import { CancelSubscription } from './_cancel-subscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +14,7 @@ function formatBRL(cents: number): string {
 
 const statusMessage: Record<string, { text: string; className: string }> = {
   approved: {
-    text: 'Pagamento aprovado! Sua assinatura já está ativa.',
+    text: 'Pagamento aprovado! Estamos ativando seu plano.',
     className: 'bg-brand-50 text-brand-700',
   },
   pending: {
@@ -33,13 +35,24 @@ export default async function PlansPage({
   const { status } = await searchParams
   const session = await getSession()
 
-  const plans = await prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: 'asc' },
-  })
+  const [plans, subscription] = await Promise.all([
+    prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    }),
+    session
+      ? prisma.subscription.findUnique({
+          where: { userId: session.userId },
+          include: { plan: true },
+        })
+      : Promise.resolve(null),
+  ])
 
   const paidPlans = plans.filter((plan) => plan.priceCents > 0)
   const freePlan = plans.find((plan) => plan.priceCents === 0)
+  const currentPlanId =
+    subscription && subscription.status === 'active' ? subscription.planId : null
+  const onPaidPlan = Boolean(currentPlanId && currentPlanId !== freePlan?.id)
   const message = status ? statusMessage[status] : undefined
 
   return (
@@ -86,10 +99,19 @@ export default async function PlansPage({
           </div>
         )}
 
+        <SubscriptionStatus status={status ?? ''} loggedIn={Boolean(session)} />
+
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {freePlan && (
             <div className="card">
-              <h2 className="font-semibold text-gray-900">{freePlan.name}</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">{freePlan.name}</h2>
+                {currentPlanId === freePlan.id && (
+                  <span className="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full font-medium">
+                    Seu plano
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-3xl font-bold text-brand-600">Grátis</p>
               {freePlan.description && (
                 <p className="mt-2 text-sm text-gray-600">{freePlan.description}</p>
@@ -121,7 +143,14 @@ export default async function PlansPage({
                   Recomendado
                 </span>
               )}
-              <h2 className="font-semibold text-gray-900">{plan.name}</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">{plan.name}</h2>
+                {currentPlanId === plan.id && (
+                  <span className="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full font-medium">
+                    Seu plano
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-3xl font-bold text-gray-900">
                 {formatBRL(plan.priceCents)}
                 <span className="text-base font-normal text-gray-500">/mês</span>
@@ -137,11 +166,13 @@ export default async function PlansPage({
                 <li>• {plan.maxIdeasPerWeek} ideias por semana</li>
                 <li>• {plan.maxAdjustmentsPerWeek} ajustes por semana</li>
               </ul>
+
               <div className="mt-6">
                 <CheckoutButton
                   planId={plan.id}
                   planName={plan.name}
                   loggedIn={Boolean(session)}
+                  isCurrent={currentPlanId === plan.id}
                 />
               </div>
             </div>
@@ -154,9 +185,16 @@ export default async function PlansPage({
           )}
         </div>
 
+        {onPaidPlan && (
+          <div className="mt-8 text-center">
+            <CancelSubscription />
+          </div>
+        )}
+
         <p className="mt-10 text-center text-xs text-gray-500 max-w-2xl mx-auto leading-relaxed">
           O Fixly não garante vendas nem renda. A assinatura cobre o uso da plataforma; o
-          conteúdo e a divulgação são responsabilidade do autor.
+          conteúdo e a divulgação são responsabilidade do autor. O cancelamento é
+          imediato e você volta ao plano gratuito.
         </p>
       </main>
     </div>

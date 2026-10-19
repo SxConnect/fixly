@@ -7,10 +7,12 @@ export function CheckoutButton({
   planId,
   planName,
   loggedIn,
+  isCurrent = false,
 }: {
   planId: string
   planName: string
   loggedIn: boolean
+  isCurrent?: boolean
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -53,7 +55,11 @@ export function CheckoutButton({
         className="btn-primary w-full"
         type="button"
       >
-        {loading ? 'Abrindo o checkout...' : `Assinar ${planName}`}
+        {loading
+          ? 'Abrindo o checkout...'
+          : isCurrent
+            ? `Renovar ${planName}`
+            : `Assinar ${planName}`}
       </button>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>

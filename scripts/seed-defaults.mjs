@@ -31,12 +31,40 @@ try {
         maxProductsPerWeek: 10,
         maxIdeasPerWeek: 100,
         maxAdjustmentsPerWeek: 50,
-        features: ['10 ebooks por semana', '100 ideias por semana', '50 ajustes por semana'],
+        features: ['Capa gerada a partir do título', 'Flipbook para ler e revisar', 'Página de vendas pronta'],
       },
     })
     console.log('[seed] Plano gratuito criado')
   } else {
     console.log('[seed] Plano gratuito já existe')
+  }
+
+  const pro = await prisma.plan.findFirst({ where: { slug: 'pro' } })
+
+  if (!pro) {
+    await prisma.plan.create({
+      data: {
+        name: 'Pro',
+        slug: 'pro',
+        description: 'Para quem publica todo dia e precisa de mais volume.',
+        priceCents: 4790,
+        currency: 'BRL',
+        isActive: true,
+        isHighlighted: true,
+        displayOrder: 1,
+        maxProductsPerWeek: 50,
+        maxIdeasPerWeek: 300,
+        maxAdjustmentsPerWeek: 150,
+        features: [
+          'Checkout com Mercado Pago',
+          'Cancelamento imediato',
+          'Prioridade na fila de geração',
+        ],
+      },
+    })
+    console.log('[seed] Plano Pro criado (pagamento via Mercado Pago)')
+  } else {
+    console.log('[seed] Plano Pro já existe')
   }
 } catch (error) {
   console.error('[seed] Erro ao criar plano padrão:', error.message)

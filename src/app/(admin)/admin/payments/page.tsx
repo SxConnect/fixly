@@ -29,6 +29,7 @@ export default async function AdminPaymentsPage() {
 
   const methods = await prisma.paymentMethod.findMany({ orderBy: { sortOrder: 'asc' } })
   const mpConfigured = isMercadoPagoConfigured()
+  const webhookSecretConfigured = Boolean(process.env.MERCADOPAGO_WEBHOOK_SECRET)
 
   return (
     <div className="space-y-6">
@@ -45,6 +46,11 @@ export default async function AdminPaymentsPage() {
           {mpConfigured
             ? 'Credencial MERCADOPAGO_ACCESS_TOKEN encontrada no ambiente.'
             : 'MERCADOPAGO_ACCESS_TOKEN não está configurada no ambiente do Vercel — o checkout ficará indisponível até você adicioná-la.'}
+        </p>
+        <p className="text-sm text-gray-600 mt-1">
+          {webhookSecretConfigured
+            ? 'Segredo do webhook configurado: as notificações são validadas por assinatura.'
+            : 'Sem MERCADOPAGO_WEBHOOK_SECRET as notificações são aceitas sem validar a assinatura (recomendado configurar).'}
         </p>
         <TestMercadoPagoButton />      </div>
 

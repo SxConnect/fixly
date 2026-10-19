@@ -194,3 +194,24 @@ sociais, formulário curto e design focado.
 - `BLOB_READ_WRITE_TOKEN` configurado em production/preview
 - Publicação da página de vendas ficou robusta: inputs controlados, validação no
   cliente (preço > 0 e link começando com https://) e mensagem de erro clara
+
+## Integração Mercado Pago (2026-10-19)
+
+- **Checkout** (`POST /api/checkout/mercadopago`): cria o pedido (`Order`) e a
+  preferência de pagamento no Mercado Pago com `external_reference` = id do
+  pedido, `metadata` (orderId/planId/userId), `back_urls` para `/planos` e
+  `notification_url` para o webhook
+- **Webhook** (`POST /api/webhooks/mercadopago`): valida a assinatura
+  (HMAC-SHA256 no manifesto `id:{data.id};request-id:{x-request-id};ts:{ts};`),
+  busca o pagamento na API do Mercado Pago, é **idempotente** (pedido aprovado
+  não muda de status) e ativa a assinatura por 30 dias quando `status = approved`
+- **Planos**: seed cria o plano **Pro** (R$ 47,90/mês, 50 ebooks + 300 ideias +
+  150 ajustes por semana) e o **Gratuito** (10/100/50). Preço editável em
+  `/admin/plans`
+- **Assinatura do usuário**: `GET /api/subscription` devolve plano atual e
+  limites; `DELETE` cancela (volta ao gratuito imediatamente). A tela de
+  Configurações mostra plano e limites
+- Ao voltar do Mercado Pago, `/planos` acompanha a ativação por 15 s
+  (o webhook pode demorar) e mostra "Pagamento aprovado! Ativando seu plano…"
+- Sem `MERCADOPAGO_ACCESS_TOKEN` o checkout responde **503** sem criar pedido;
+  o status da credencial e do segredo do webhook aparece em `/admin/pagamentos`

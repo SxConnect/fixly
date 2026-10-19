@@ -2,11 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Profile {
   name: string
   bio: string | null
   brandColor: string
+}
+
+interface Subscription {
+  plan: { id: string | null; name: string; priceCents: number; currentPeriodEnd: string | null }
+  limits: { products: number; ideas: number; adjustments: number }
 }
 
 export default function SettingsPage() {
@@ -16,6 +22,7 @@ export default function SettingsPage() {
   const [bio, setBio] = useState('')
   const [brandColor, setBrandColor] = useState('#16a34a')
   const [loading, setLoading] = useState(true)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -40,6 +47,18 @@ export default function SettingsPage() {
     }
     loadProfile()
   }, [router])
+
+  useEffect(() => {
+    async function loadSubscription() {
+      try {
+        const res = await fetch('/api/subscription')
+        if (res.ok) setSubscription(await res.json())
+      } catch (error) {
+        console.error('Failed to load subscription:', error)
+      }
+    }
+    loadSubscription()
+  }, [])
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -124,6 +143,55 @@ export default function SettingsPage() {
           {saving ? 'Salvando...' : 'Salvar perfil'}
         </button>
       </form>
+
+      {/* Plano e limites */}
+      {subscription && (
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Plano e limites</h2>
+            <Link href="/planos" className="text-sm text-brand-600 hover:underline">
+              Ver planos
+            </Link>
+          </div>
+
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-gray-900">{subscription.plan.name}</span>
+            {subscription.plan.priceCents > 0 && (
+              <span className="text-sm text-gray-500">
+                {(subscription.plan.priceCents / 100).toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
+                /mês
+              </span>
+            )}
+          </div>
+
+          {subscription.plan.currentPeriodEnd && (
+            <p className="mt-1 text-xs text-gray-500">
+              Renovação em{' '}
+              {new Date(subscription.plan.currentPeriodEnd).toLocaleDateString('pt-BR')}
+            </p>
+          )}
+
+          <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-xl bg-gray-50 p-3">
+              <dt className="text-xs text-gray-500">Ebooks/semana</dt>
+              <dd className="text-lg font-bold text-gray-900">{subscription.limits.products}</dd>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-3">
+              <dt className="text-xs text-gray-500">Ideias/semana</dt>
+              <dd className="text-lg font-bold text-gray-900">{subscription.limits.ideas}</dd>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-3">
+              <dt className="text-xs text-gray-500">Ajustes/semana</dt>
+              <dd className="text-lg font-bold text-gray-900">
+                {subscription.limits.adjustments}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       {/* Legal */}
       <div className="card bg-gray-50">
