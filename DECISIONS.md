@@ -37,3 +37,17 @@
 - [ ] Implementar autenticação
 - [ ] Criar layout mobile-first
 - [ ] Configurar PWA
+
+## Vercel e Cron Jobs (2026-10-19)
+
+- O deploy falhava com o erro: "Hobby accounts are limited to daily cron jobs.
+  This cron expression would run more than once per day."
+- O plano **Hobby** do Vercel só permite cron **uma vez por dia**; expressões
+  como `*/5 * * * *` e `*/15 * * * *` **falham no build** (não apenas na execução)
+- Os crons `/api/cron/process-generation` e `/api/cron/process-instagram` foram
+  **removidos do `vercel.json`** — além do limite do plano, essas rotas ainda
+  nem existiam no código
+- Geração de ebook roda de forma assíncrona na própria requisição
+  (`generateEbook(...).catch(...)`), sem necessidade de cron
+- Se precisar de agendamento frequente no futuro: upgrade para Pro ou usar
+  um agendador externo chamando um endpoint protegido

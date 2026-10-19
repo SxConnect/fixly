@@ -6,15 +6,5 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 60
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/process-generation",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/process-instagram",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  }
 }
