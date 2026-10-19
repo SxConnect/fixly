@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { GenerationMotion } from '@/components/generation-motion'
 import { Flipbook } from '@/components/flipbook'
 import { CoverSection } from './_cover-section'
+import { EbookPanel } from './_ebook-panel'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import type { StoredCover } from '@/lib/cover'
 
@@ -52,6 +53,8 @@ export default function ProductDetailPage({
   const [showFlipbook, setShowFlipbook] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
+  const [needsUpgrade, setNeedsUpgrade] = useState(false)
+  const [hasPaidPlan, setHasPaidPlan] = useState<boolean | null>(null)
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null)
   const [price, setPrice] = useState('')
   const [purchaseLink, setPurchaseLink] = useState('')
@@ -111,6 +114,22 @@ export default function ProductDetailPage({
     }
     loadProduct()
   }, [params, router])
+
+  // Plano do usuário: publicação final e download exigem plano pago
+  useEffect(() => {
+    async function loadPlan() {
+      try {
+        const res = await fetch('/api/subscription')
+        if (res.ok) {
+          const data = await res.json()
+          setHasPaidPlan(Boolean(data.hasPaidPlan))
+        }
+      } catch {
+        setHasPaidPlan(null)
+      }
+    }
+    loadPlan()
+  }, [])
 
   async function startGeneration() {
     if (!product) return
@@ -176,6 +195,7 @@ export default function ProductDetailPage({
       const data = await response.json()
 
       if (!response.ok) {
+        if (data.requiresUpgrade) setNeedsUpgrade(true)
         throw new Error(
           typeof data?.error === 'string' && !data.error.startsWith('[')
             ? data.error
@@ -276,16 +296,7 @@ export default function ProductDetailPage({
 
       {product.chapters.length > 0 && (
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Capítulos</h2>
-            <button
-              onClick={() => setShowFlipbook(true)}
-              className="text-sm text-brand-600 hover:underline"
-              type="button"
-            >
-              📖 Ler no flipbook
-            </button>
-          </div>
+          <h2 className="font-semibold text-gray-900 mb-4">Capítulos</h2>
           <div className="space-y-2">
             {product.chapters.map((ch) => (
               <div
@@ -319,6 +330,29 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
+        <div className="card bg-amber-50/60 border-amber-200">
+          <p className="text-sm text-amber-900">
+            <strong>Antes de publicar:</strong> a IA escreve um rascunho. Leia, corrija e
+            responda pelo que você publica. Esse aviso é interno e não aparece na página de
+            vendas.
+          </p>
+        </div>
+      )}
+
+      {product.chapters.length > 0 && (
+        <EbookPanel
+          productId={product.id}
+          title={product.title}
+          author={product.profile?.name || 'Você'}
+          promise={product.promise}
+          chapters={product.chapters}
+          coverConcept={
+            product.coverConcept?.variants?.[product.coverConcept.selected] ?? null
+          }
+        />
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card">
           <h2 className="font-semibold text-gray-900">Baixar e ler</h2>
           <p className="text-sm text-gray-600 mt-0.5">
@@ -326,27 +360,44 @@ export default function ProductDetailPage({
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <a
-              href={`/api/products/${product.id}/pdf?format=ebook`}
-              className="btn-secondary !py-3 text-center text-sm"
-              download
-            >
-              PDF do ebook
-            </a>
-            <a
-              href={`/api/products/${product.id}/pdf?format=flipbook`}
-              className="btn-secondary !py-3 text-center text-sm"
-              download
-            >
-              Flipbook em PDF
-            </a>
-            <button
-              onClick={() => setShowFlipbook(true)}
-              className="btn-primary !py-3 text-sm"
-              type="button"
-            >
-              Continuar no flipbook
-            </button>
+            {hasPaidPlan === false ? (
+              <div className="sm:col-span-3 rounded-xl bg-gray-50 border border-gray-200 p-4 text-sm text-gray-600">
+                <p className="font-medium text-gray-900">
+                  O download do ebook em PDF faz parte do plano pago.
+                </p>
+                <p className="mt-1">
+                  No plano gratuito você pode criar, revisar e ler o ebook no flipbook — mas
+                  não baixar o PDF nem concluir a publicação.
+                </p>
+                <Link href="/planos" className="btn-primary !py-2 !px-4 !text-sm !min-h-0 mt-3 inline-block">
+                  Ver planos
+                </Link>
+              </div>
+            ) : (
+              <>
+                <a
+                  href={`/api/products/${product.id}/pdf?format=ebook`}
+                  className="btn-secondary !py-3 text-center text-sm"
+                  download
+                >
+                  PDF do ebook
+                </a>
+                <a
+                  href={`/api/products/${product.id}/pdf?format=flipbook`}
+                  className="btn-secondary !py-3 text-center text-sm"
+                  download
+                >
+                  Flipbook em PDF
+                </a>
+                <button
+                  onClick={() => setShowFlipbook(true)}
+                  className="btn-primary !py-3 text-sm"
+                  type="button"
+                >
+                  Continuar no flipbook
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -364,45 +415,26 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
-        <div className="card bg-gradient-to-br from-brand-50 via-white to-white">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">
-                {product.status === 'published'
-                  ? 'Seu ebook está publicado'
-                  : 'Seu ebook está pronto'}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {product.chapters.length} capítulos escritos e revisados. Abra o flipbook para
-                ler o material como um livro digital, com capa e virada de página.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowFlipbook(true)}
-              className="btn-primary whitespace-nowrap"
-              type="button"
-            >
-              Abrir flipbook
-            </button>
-          </div>
-        </div>
-      )}
-
-      {(product.status === 'ready' || product.status === 'published') && (
-        <div className="card bg-amber-50/60 border-amber-200">
-          <p className="text-sm text-amber-900">
-            <strong>Antes de publicar:</strong> a IA escreve um rascunho. Leia, corrija e
-            responda pelo que você publica. Esse aviso é interno e não aparece na página de
-            vendas.
-          </p>
-        </div>
-      )}
-
-      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card space-y-4">
           <h2 className="font-semibold text-gray-900">
             {product.status === 'published' ? 'Atualizar página de vendas' : 'Publicar página de vendas'}
           </h2>
+
+          {(hasPaidPlan === false || needsUpgrade) && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
+              <p className="font-medium">A conclusão da venda faz parte do plano pago.</p>
+              <p className="mt-1 text-amber-800/90">
+                Você pode criar, revisar e visualizar a página, mas para publicá-la de
+                verdade e baixar o ebook em PDF é preciso assinar um plano.
+              </p>
+              <Link
+                href="/planos"
+                className="btn-primary !py-2 !px-4 !text-sm !min-h-0 mt-3 inline-block"
+              >
+                Escolher um plano
+              </Link>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Preço (R$)

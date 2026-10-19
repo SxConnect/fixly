@@ -155,7 +155,11 @@ export type TextLine =
   | { type: 'heading'; text: string }
   | { type: 'list'; items: string[] }
   | { type: 'quote'; text: string }
+  | { type: 'image'; url: string; alt: string }
+  | { type: 'divider' }
   | { type: 'paragraph'; text: string }
+
+const IMAGE_PATTERN = /^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/
 
 export function toTextLines(text: string): TextLine[] {
   const lines: TextLine[] = []
@@ -204,6 +208,23 @@ export function toTextLines(text: string): TextLine[] {
       flushList()
       flushParagraph()
       lines.push({ type: 'quote', text: line.replace(/^>\s?/, '') })
+      continue
+    }
+
+    // Imagem: ![legenda](https://...)
+    const image = line.match(IMAGE_PATTERN)
+    if (image) {
+      flushList()
+      flushParagraph()
+      lines.push({ type: 'image', url: image[2], alt: image[1] || '' })
+      continue
+    }
+
+    // Divisor: --- ou ***
+    if (/^(-{3,}|\*{3,})$/.test(line)) {
+      flushList()
+      flushParagraph()
+      lines.push({ type: 'divider' })
       continue
     }
 

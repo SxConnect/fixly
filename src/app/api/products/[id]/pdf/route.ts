@@ -1,6 +1,7 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { hasPaidPlan } from '@/lib/plans'
 import { resolveCover } from '@/lib/cover'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import { createEbookPDF, createFlipbookPDF } from '@/lib/ebook-pdf'
@@ -30,6 +31,14 @@ export async function GET(
 
     if (!product) {
       return new Response('Produto não encontrado', { status: 404 })
+    }
+
+    // O download do ebook faz parte do plano pago
+    if (!(await hasPaidPlan(session.userId))) {
+      return new Response(
+        'O download do ebook em PDF faz parte do plano pago. Escolha um plano em /planos.',
+        { status: 402 }
+      )
     }
 
     const url = new URL(request.url)

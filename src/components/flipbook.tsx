@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FlipbookPage } from '@/lib/ebook-pages'
-import { toTextLines } from '@/lib/ebook-pages'
+import { ContentBlocks } from '@/components/ebook-content'
 import { EbookCover } from '@/components/ebook-cover'
 import type { CoverConcept } from '@/lib/cover'
 
@@ -14,6 +14,8 @@ interface FlipbookProps {
   coverConcept?: CoverConcept | null
   onClose?: () => void
   initialSpread?: number
+  /** Modo embutido: dentro de um card, sem sobrepor a tela */
+  inline?: boolean
 }
 
 /** Escala mínima antes de habilitar rolagem dentro da página */
@@ -21,85 +23,8 @@ const MIN_SCALE = 0.62
 
 const PAPER = '#faf8f3'
 
-/** Renderiza **negrito**, *itálico* e `código` dentro do texto. */
-function renderInline(text: string): React.ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g)
-
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-      return <strong key={index} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>
-    }
-    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-      return <em key={index}>{part.slice(1, -1)}</em>
-    }
-    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
-      return (
-        <code key={index} className="px-1 py-0.5 rounded bg-gray-200/70 text-[0.85em]">
-          {part.slice(1, -1)}
-        </code>
-      )
-    }
-    return <span key={index}>{part}</span>
-  })
-}
-
 function PageBody({ body }: { body: string[] }) {
-  return (
-    <div className="space-y-3">
-      {body.map((block, index) => {
-        const lines = toTextLines(block)
-        return (
-          <div key={index}>
-            {lines.map((line, lineIndex) => {
-              if (line.type === 'heading') {
-                return (
-                  <h3
-                    key={lineIndex}
-                    className="font-serif text-[15px] sm:text-lg font-bold text-gray-900 mt-5 mb-1.5"
-                  >
-                    {renderInline(line.text)}
-                  </h3>
-                )
-              }
-              if (line.type === 'list') {
-                return (
-                  <ul key={lineIndex} className="space-y-1.5 my-2.5">
-                    {line.items.map((item, itemIndex) => (
-                      <li
-                        key={itemIndex}
-                        className="flex gap-2.5 text-gray-700 text-[13px] sm:text-[15px] leading-relaxed"
-                      >
-                        <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />
-                        <span>{renderInline(item)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )
-              }
-              if (line.type === 'quote') {
-                return (
-                  <blockquote
-                    key={lineIndex}
-                    className="my-3 pl-4 border-l-2 border-brand-400 text-gray-600 text-[13px] sm:text-[15px] italic leading-relaxed"
-                  >
-                    {renderInline(line.text)}
-                  </blockquote>
-                )
-              }
-              return (
-                <p
-                  key={lineIndex}
-                  className="text-gray-700 text-[13px] sm:text-[15px] leading-[1.75]"
-                >
-                  {renderInline(line.text)}
-                </p>
-              )
-            })}
-          </div>
-        )
-      })}
-    </div>
-  )
+  return <ContentBlocks body={body} />
 }
 
 function Sheet({
@@ -283,6 +208,7 @@ export function Flipbook({
   coverConcept,
   onClose,
   initialSpread = 0,
+  inline = false,
 }: FlipbookProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [spread, setSpread] = useState(initialSpread)
@@ -378,7 +304,13 @@ export function Flipbook({
       : 0
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#12161d]">
+    <div
+      className={
+        inline
+          ? 'relative w-full h-full flex flex-col bg-[#12161d] overflow-hidden'
+          : 'fixed inset-0 z-50 flex flex-col bg-[#12161d]'
+      }
+    >
       {/* Barra superior */}
       <div className="flex items-center justify-between gap-3 px-4 py-3 text-white/70">
         <div className="min-w-0">
@@ -389,7 +321,7 @@ export function Flipbook({
           <span className="text-xs tabular-nums text-white/50">
             {isMobile ? `${pageIndex + 1}/${totalPages}` : `${spread + 1}/${maxSpread + 1}`}
           </span>
-          {onClose && (
+          {onClose && !inline && (
             <button
               onClick={onClose}
               className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-sm transition-colors"

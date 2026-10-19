@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { salesPageSchema } from '@/lib/validation'
 import { getSession } from '@/lib/auth'
+import { hasPaidPlan } from '@/lib/plans'
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,18 @@ export async function POST(request: Request) {
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // A conclusão da venda (publicar a página final) exige um plano pago
+    if (!(await hasPaidPlan(session.userId))) {
+      return NextResponse.json(
+        {
+          error:
+            'A publicação final da página de vendas faz parte do plano pago. Escolha um plano em /planos para concluir.',
+          requiresUpgrade: true,
+        },
+        { status: 402 }
+      )
     }
 
     const body = await request.json()

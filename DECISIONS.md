@@ -260,3 +260,21 @@ sociais, formulário curto e design focado.
   editável no painel
 - O aviso passou para o **painel do autor**, em destaque na tela do produto,
   logo antes do formulário de publicação
+
+## Card expansível do ebook + editor WYSIWYG + plano pago (2026-10-19)
+
+- **Card expansível** (`_ebook-panel.tsx`): recolhido mostra capa, nº de capítulos
+  e status; ao clicar expande com abas **Ler** (flipbook embutido, sem sair da
+  tela) e **Editar** (editor)
+- **Editor WYSIWYG** (`_ebook-editor.tsx`): lista de capítulos + editor com
+  barra de formatação (negrito, itálico, H2, lista, citação, divisor, imagem) e
+  **prévia ao vivo** renderizada igual ao leitor. Salva via Server Action
+  (`updateChapter`) validando a propriedade do capítulo
+- **Inserir imagens**: upload para o Vercel Blob (`/api/products/[id]/images/upload`)
+  e inserção no texto como `![legenda](url)`; renderizado no flipbook e no PDF
+- Conteúdo suporta `![img](url)`, `---` (divisor) e `**negrito**`/`*itálico*`
+- **Plano pago no servidor**: publicar a página de vendas (`/api/sales-page/publish`)
+  e baixar o PDF (`/api/products/[id]/pdf`) retornam **402** sem assinatura paga
+  ativa (`hasPaidPlan`). No plano gratuito o autor cria, revisa, edita, lê no
+  flipbook e visualiza a página — mas não conclui a venda
+- Super admin: `sxconect@gmail.com` (role ADMIN, também em `ADMIN_EMAILS`)

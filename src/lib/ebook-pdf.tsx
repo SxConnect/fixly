@@ -99,6 +99,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 4,
   },
+  pdfImage: {
+    width: '100%',
+    marginVertical: 10,
+    objectFit: 'contain',
+  },
   bullet: {
     width: 12,
     color: '#16a34a',
@@ -206,6 +211,10 @@ function renderContent(content: string) {
           </View>
         )
       }
+      if (/^!\[([^\]]*)\]\(([^)\s]+)\)?$/.test(line)) {
+        const match = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)?$/)
+        if (match) return <Image key={index} src={match[2]} style={styles.pdfImage} />
+      }
       return (
         <Text key={index} style={styles.paragraph}>
           {line}
@@ -213,7 +222,7 @@ function renderContent(content: string) {
       )
     }
 
-    // Bloco com várias linhas: títulos, listas e parágrafos
+    // Bloco com várias linhas: títulos, listas, imagens e parágrafos
     return (
       <View key={index}>
         {lines.map((line, lineIndex) => {
@@ -238,6 +247,10 @@ function renderContent(content: string) {
                 <Text style={{ flex: 1 }}>{line.replace(/^[-*•]\s+/, '')}</Text>
               </View>
             )
+          }
+          if (/^!\[([^\]]*)\]\(([^)\s]+)\)?$/.test(line)) {
+            const match = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)?$/)
+            if (match) return <Image key={lineIndex} src={match[2]} style={styles.pdfImage} />
           }
           return (
             <Text key={lineIndex} style={styles.paragraph}>

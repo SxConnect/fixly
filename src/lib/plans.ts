@@ -34,6 +34,28 @@ export async function getFreePlanLimits(): Promise<PlanLimits> {
   return ENV_LIMITS
 }
 
+/**
+ * O usuário tem um plano **pago** ativo?
+ * Usado para liberar a publicação final da página de vendas e o download do
+ * ebook em PDF. No plano gratuito o autor pode criar, revisar e publicar a
+ * página, mas não concluir a venda.
+ */
+export async function hasPaidPlan(userId: string): Promise<boolean> {
+  try {
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId },
+      include: { plan: { select: { priceCents: true } } },
+    })
+
+    return Boolean(
+      subscription && subscription.status === 'active' && subscription.plan.priceCents > 0
+    )
+  } catch (error) {
+    console.error('Falha ao verificar o plano do usuário:', error)
+    return false
+  }
+}
+
 /** Limites do plano do usuário (assinatura ativa). Cai para o plano gratuito. */
 export async function getPlanLimitsForUser(userId: string): Promise<PlanLimits> {
   try {

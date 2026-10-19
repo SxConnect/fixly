@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { getPlanLimitsForUser, getFreePlanLimits } from '@/lib/plans'
+import {
+  getPlanLimitsForUser,
+  getFreePlanLimits,
+  hasPaidPlan,
+} from '@/lib/plans'
 
 export async function GET() {
   try {
@@ -32,6 +36,7 @@ export async function GET() {
 
     const limits = await getPlanLimitsForUser(user.id)
     const freeLimits = await getFreePlanLimits()
+    const paid = await hasPaidPlan(user.id)
 
     return NextResponse.json({
       plan: active
@@ -53,6 +58,7 @@ export async function GET() {
           },
       limits,
       freeLimits,
+      hasPaidPlan: paid,
       expiresAt: active?.currentPeriodEnd ?? null,
     })
   } catch (error) {
