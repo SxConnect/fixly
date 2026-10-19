@@ -70,3 +70,29 @@
   dashboard; o token do CLI fica em `~/.local/share/com.vercel.cli/auth.json`
 - Deployment Protection do projeto foi **desativada** (a landing page é pública)
 - `NEXT_PUBLIC_APP_URL` = `https://fixly-pied.vercel.app`
+
+## Área de superadmin (2026-10-19)
+
+- Nova rota `/admin` (App Router, route group `(admin)`) com Server Components
+  + Server Actions — sem APIs duplicadas para escrita
+- Proteção em duas camadas:
+  - `src/proxy.ts` (antigo middleware) redireciona para `/login` sem cookie —
+    checagem otimista, sem I/O
+  - `requireAdmin()` (lib/admin.ts) valida o papel no banco em toda página e
+    em toda Server Action — é a checagem autoritativa
+- Novos modelos: `Plan`, `Subscription`, `Order`, `LandingConfig`, `MenuItem`,
+  `ImageAsset`, `PaymentMethod`, `AppSetting`; `User.role` (USER/ADMIN) e
+  `User.status` (active/suspended)
+- A landing page virou **dinâmica**: lê `LandingConfig` e `MenuItem` do banco e
+  cai para o conteúdo padrão se o banco falhar (nunca quebra a página)
+- Limites semanais passaram a vir do plano do usuário (assinatura ativa) e, sem
+  assinatura, do plano gratuito padrão
+- `ADMIN_EMAILS` promove o usuário a admin no momento do cadastro;
+  `scripts/make-admin.mjs` promove manualmente
+- `scripts/seed-defaults.mjs` garante o plano gratuito padrão (roda no build)
+- Mercado Pago: `POST /api/checkout/mercadopago` cria pedido + preferência;
+  `POST /api/webhooks/mercadopago` valida a assinatura (HMAC), é idempotente e
+  ativa a assinatura quando o pagamento é aprovado
+- Projeto recriado no Vercel após a deleção acidental: novo id
+  `prj_ThJLWAur94Sc246NEpyn2TV3F8PV`, domínio `fixly-psi-three.vercel.app`,
+  banco Neon reconectado (o armazenamento é do time, então o banco sobreviveu)

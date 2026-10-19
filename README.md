@@ -31,6 +31,40 @@ Plataforma mobile-first (PWA) para criação, venda e divulgação de ebooks com
 - **Vendas**: Webhooks para Kiwify e Hotmart, entrega automática por e-mail
 - **Divulgação**: Pacote Facebook, 21 roteiros de vídeo, Instagram (em breve)
 - **Painel**: Diagnóstico de vendas com sugestões objetivas
+- **Superadmin**: planos e limites, landing page configurável, menus, imagens, usuários e meios de pagamento
+
+## Área do superadmin
+
+Painel em `/admin`, acessível apenas para usuários com `role = ADMIN`.
+
+| Página | O que faz |
+|---|---|
+| `/admin` | Métricas: usuários, ebooks, MRR, receita e últimos pedidos |
+| `/admin/plans` | CRUD de planos (preço, limites semanais, destaque, plano padrão) |
+| `/admin/landing` | Edita hero, banner, benefícios, passos, FAQ, planos e rodapé da landing |
+| `/admin/menus` | Links do cabeçalho e do rodapé (quando há itens, substituem os botões padrão) |
+| `/admin/images` | Biblioteca de imagens (logo, hero, OG, promoções) por URL |
+| `/admin/users` | Papel (usuário/admin), status (ativo/suspenso) e plano de cada conta |
+| `/admin/payments` | Meios de pagamento, configuração JSON e teste da credencial do Mercado Pago |
+| `/admin/orders` | Pedidos com status, valor, plano e referência do provedor |
+
+**Quem é admin**
+
+1. Defina `ADMIN_EMAILS` (e-mails separados por vírgula) no ambiente — quem criar
+   conta com um desses e-mails já entra como admin.
+2. Ou promova manualmente: `pnpm user:admin seu@email.com`.
+
+A proteção usa `src/proxy.ts` (redireciona para `/login` sem sessão) e o layout
+do admin confere o papel no banco — a checagem do papel é sempre a autoritativa.
+
+**Checkout com Mercado Pago**
+
+1. Crie a aplicação em [mercadopago.com.br/developers](https://www.mercadopago.com.br/developers)
+2. Configure `MERCADOPAGO_ACCESS_TOKEN` no ambiente (e `MERCADOPAGO_WEBHOOK_SECRET`
+   para validar a assinatura do webhook)
+3. Cadastre o webhook apontando para `https://seu-dominio/api/webhooks/mercadopago`
+4. Ative o provedor em `/admin/payments`
+
 
 ## Stack
 
@@ -64,11 +98,21 @@ JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 OPENROUTER_API_KEY=sk-or-...
 RESEND_API_KEY=re_...
 NEXT_PUBLIC_APP_URL=https://seu-dominio.vercel.app
+ADMIN_EMAILS=voce@email.com
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
 ```
+
+O `DATABASE_URL` é injetado automaticamente ao criar o banco Neon pelo
+Marketplace do Vercel (projeto → Storage → Connect Project).
 
 ### 3. Deploy
 
-O deploy é automático a cada push na branch main.
+O deploy é automático a cada push na branch `master`.
+
+> **Atenção ao plano Hobby**: cron jobs com frequência maior que uma vez por dia
+> **falham o build**. As tarefas de geração rodam de forma assíncrona na própria
+> requisição, sem cron.
+
 
 ## Desenvolvimento local
 
