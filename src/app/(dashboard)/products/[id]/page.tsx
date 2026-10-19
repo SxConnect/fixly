@@ -47,6 +47,8 @@ export default function ProductDetailPage({
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [showFlipbook, setShowFlipbook] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState('')
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
@@ -135,6 +137,54 @@ export default function ProductDetailPage({
     } catch (error) {
       console.error('Generation error:', error)
       setGenerating(false)
+    }
+  }
+
+  async function publishSalesPage() {
+    if (!product) return
+    setPublishing(true)
+    setPublishError('')
+
+    try {
+      const price = parseFloat(
+        (document.getElementById('price') as HTMLInputElement).value
+      )
+      const purchaseLink = (document.getElementById('purchaseLink') as HTMLInputElement)
+        .value
+
+      const response = await fetch('/api/sales-page/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, price, purchaseLink }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao publicar a página de vendas')
+      }
+
+      const slug = data.slug || data.salesPage?.slug
+      if (!slug) throw new Error('A página foi publicada, mas o link não foi retornado')
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              status: 'published',
+              slug,
+              price,
+              purchaseLink,
+            }
+          : current
+      )
+
+      router.push(`/p/${slug}`)
+    } catch (error) {
+      setPublishError(
+        error instanceof Error ? error.message : 'Erro ao publicar a página de vendas'
+      )
+      setPublishing(false)
     }
   }
 
@@ -248,11 +298,15 @@ export default function ProductDetailPage({
         </div>
       )}
 
-      {product.status === 'ready' && (
+      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card bg-gradient-to-br from-brand-50 via-white to-white">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">Seu ebook está pronto</h2>
+              <h2 className="font-semibold text-gray-900">
+                {product.status === 'published'
+                  ? 'Seu ebook está publicado'
+                  : 'Seu ebook está pronto'}
+              </h2>
               <p className="text-sm text-gray-600 mt-1">
                 {product.chapters.length} capítulos escritos e revisados. Abra o flipbook para
                 ler o material como um livro digital, com capa e virada de página.
@@ -269,9 +323,11 @@ export default function ProductDetailPage({
         </div>
       )}
 
-      {product.status === 'ready' && (
+      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card space-y-4">
-          <h2 className="font-semibold text-gray-900">Publicar página de vendas</h2>
+          <h2 className="font-semibold text-gray-900">
+            {product.status === 'published' ? 'Atualizar página de vendas' : 'Publicar página de vendas'}
+          </h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Preço (R$)
@@ -282,6 +338,7 @@ export default function ProductDetailPage({
               className="input-field"
               placeholder="49.90"
               step="0.01"
+              defaultValue={product.price ?? ''}
             />
           </div>
           <div>
@@ -293,27 +350,36 @@ export default function ProductDetailPage({
               id="purchaseLink"
               className="input-field"
               placeholder="https://..."
+              defaultValue={product.purchaseLink ?? ''}
             />
           </div>
+
+          {publishError && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">
+              {publishError}
+            </div>
+          )}
+
           <button
-            onClick={async () => {
-              const price = parseFloat(
-                (document.getElementById('price') as HTMLInputElement).value
-              )
-              const purchaseLink = (
-                document.getElementById('purchaseLink') as HTMLInputElement
-              ).value
-              await fetch('/api/sales-page/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId: product.id, price, purchaseLink }),
-              })
-              router.push(`/p/${product.slug}`)
-            }}
+            onClick={publishSalesPage}
+            disabled={publishing}
             className="btn-primary w-full"
           >
-            Publicar página de vendas
+            {publishing
+              ? 'Publicando...'
+              : product.status === 'published'
+                ? 'Salvar alterações'
+                : 'Publicar página de vendas'}
           </button>
+
+          {product.slug && (
+            <Link
+              href={`/p/${product.slug}`}
+              className="block text-center text-sm text-brand-600 hover:underline"
+            >
+              Ver página publicada
+            </Link>
+          )}
         </div>
       )}
 

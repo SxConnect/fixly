@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import { FlipbookPreview } from './_flipbook-preview'
+import { BuyButton } from './_buy-button'
 
 interface SalesPageProps {
   params: Promise<{ slug: string }>
@@ -69,21 +70,11 @@ export default async function SalesPage({ params }: SalesPageProps) {
           <p className="text-lg text-gray-600 mb-8">{product.promise}</p>
 
           {product.price && product.purchaseLink && (
-            <a
+            <BuyButton
               href={product.purchaseLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary inline-block text-lg px-8 py-4"
-              onClick={async () => {
-                await fetch('/api/sales-page/event', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ salesPageId: salesPage.id, type: 'click' }),
-                })
-              }}
-            >
-              Comprar por R$ {product.price.toFixed(2)}
-            </a>
+              price={product.price}
+              salesPageId={salesPage.id}
+            />
           )}
         </div>
       </section>

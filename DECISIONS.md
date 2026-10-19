@@ -120,3 +120,15 @@
     "Seu ebook está pronto"
   - na página pública de vendas (`/p/[slug]`) — "Folhear o ebook", para o
     comprador conferir o material antes de comprar
+
+## Correção: publicação da página de vendas (2026-10-19)
+
+- **404 ao publicar**: o cliente ignorava a resposta da API e redirecionava para
+  `/p/${product.slug}` com o `slug` ainda `null` no estado local. Agora usa o slug
+  retornado pela API (`{ salesPage, slug }`)
+- **Slug dessincronizado**: ao republicar, a API gerava um slug novo para o
+  produto mas mantinha o antigo na sales page — o link público passava a dar 404.
+  Agora o slug é gerado **apenas na primeira publicação** e reaproveitado
+- **500 na página pública**: o botão "Comprar" (Server Component) tinha `onClick`
+  — proibido em Server Components. Extraído para `_buy-button.tsx` (client)
+- A página pública agora mostra "Folhear o ebook" (flipbook) antes da compra

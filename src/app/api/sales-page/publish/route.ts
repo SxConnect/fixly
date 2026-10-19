@@ -29,13 +29,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
-    // Generate slug
-    const slug = `${product.title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')}-${Math.random().toString(36).slice(2, 8)}`
+    // Gera o slug apenas na primeira publicação: republicar mantém a URL pública
+    const existing = await prisma.salesPage.findUnique({ where: { productId } })
+    const slug =
+      existing?.slug ??
+      `${product.title
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')}-${Math.random().toString(36).slice(2, 8)}`
 
     // Create or update sales page
     const salesPage = await prisma.salesPage.upsert({
@@ -57,18 +60,18 @@ export async function POST(request: Request) {
       },
     })
 
-    // Update product
+    // Update product (o slug do produto é sempre o mesmo da sales page)
     await prisma.product.update({
       where: { id: productId },
       data: {
         price,
         purchaseLink,
-        slug,
+        slug: salesPage.slug,
         status: 'published',
       },
     })
 
-    return NextResponse.json({ salesPage })
+    return NextResponse.json({ salesPage, slug: salesPage.slug })
   } catch (error) {
     console.error('Publish sales page error:', error)
     return NextResponse.json(
