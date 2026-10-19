@@ -33,6 +33,12 @@ export async function POST(request: Request) {
       },
     })
 
+    // Marca como "gerando" para a interface mostrar o progresso em tempo real
+    await prisma.product.update({
+      where: { id: productId },
+      data: { status: 'generating' },
+    })
+
     // Start generation asynchronously
     generateEbook(productId).catch(console.error)
 

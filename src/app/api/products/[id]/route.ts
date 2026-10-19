@@ -24,6 +24,7 @@ export async function GET(
         chapters: { orderBy: { order: 'asc' } },
         covers: true,
         generationJobs: { orderBy: { createdAt: 'desc' }, take: 1 },
+        profile: { select: { name: true } },
       },
     })
 

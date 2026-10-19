@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { buildFlipbookPages } from '@/lib/ebook-pages'
+import { FlipbookPreview } from './_flipbook-preview'
 
 interface SalesPageProps {
   params: Promise<{ slug: string }>
@@ -27,6 +29,18 @@ export default async function SalesPage({ params }: SalesPageProps) {
   }
 
   const { product } = salesPage
+
+  const flipbookPages = buildFlipbookPages({
+    title: product.title,
+    author: product.profile.name,
+    promise: product.promise,
+    chapters: product.chapters.map((chapter) => ({
+      order: chapter.order,
+      type: chapter.type,
+      title: chapter.title,
+      content: chapter.content,
+    })),
+  })
 
   // Track visit
   await prisma.salesPageEvent.create({
@@ -102,6 +116,15 @@ export default async function SalesPage({ params }: SalesPageProps) {
                 <span className="text-gray-700">{ch.title}</span>
               </div>
             ))}
+          </div>
+
+          <div className="mt-6">
+            <FlipbookPreview
+              pages={flipbookPages}
+              title={product.title}
+              author={product.profile.name}
+              brandColor={product.profile.brandColor}
+            />
           </div>
         </div>
       </section>

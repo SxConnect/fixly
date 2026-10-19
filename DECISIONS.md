@@ -96,3 +96,27 @@
 - Projeto recriado no Vercel após a deleção acidental: novo id
   `prj_ThJLWAur94Sc246NEpyn2TV3F8PV`, domínio `fixly-psi-three.vercel.app`,
   banco Neon reconectado (o armazenamento é do time, então o banco sobreviveu)
+
+## Motion de geração + Flipbook digital (2026-10-19)
+
+- **Motion de geração** (`src/components/generation-motion.tsx`): card escuro com
+  wordmark FLIXLY com brilho animado, folhas "sendo escritas", mensagens rotativas
+  ("Escrevendo cada capítulo com a IA…"), barra de progresso e lista de capítulos
+  com estado ao vivo (na fila / escrevendo / revisando / aprovado + nota)
+- O produto agora é marcado como `generating` no início da geração — antes ele
+  ficava como `draft` até terminar, então a interface nunca mostrava o progresso
+- **Flipbook** (`src/components/flipbook.tsx`): livro digital em CSS 3D puro, sem
+  dependências externas
+  - Desktop: spread de 2 páginas com virada de folha real (transform rotateY com
+    `transform-origin: left center` e `backface-visibility`)
+  - Mobile: uma página por vez com animação de virada
+  - Capa, sumário e conteúdo paginado; navegação por botões, setas do teclado e
+    arrasto (swipe)
+- **Paginação** (`src/lib/ebook-pages.ts`): divide o conteúdo dos capítulos em
+  páginas de ~720 caracteres respeitando parágrafos, títulos, listas e blockquotes;
+  renderiza `**negrito**`, `*itálico*` e `código`
+- O flipbook aparece:
+  - no painel do autor (`/products/[id]`) — botão "Abrir flipbook" e card
+    "Seu ebook está pronto"
+  - na página pública de vendas (`/p/[slug]`) — "Folhear o ebook", para o
+    comprador conferir o material antes de comprar

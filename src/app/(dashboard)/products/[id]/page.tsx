@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { GenerationMotion } from '@/components/generation-motion'
+import { Flipbook } from '@/components/flipbook'
+import { buildFlipbookPages } from '@/lib/ebook-pages'
 
 interface Product {
   id: string
@@ -15,6 +18,7 @@ interface Product {
   purchaseLink: string | null
   slug: string | null
   coverChoice: string | null
+  profile?: { name: string } | null
   chapters: Array<{
     id: string
     order: number
@@ -23,6 +27,13 @@ interface Product {
     content: string
     note: number | null
     status: string
+  }>
+  generationJobs?: Array<{
+    id: string
+    status: string
+    progress: number
+    totalChapters: number
+    currentChapter: number
   }>
 }
 
@@ -35,6 +46,43 @@ export default function ProductDetailPage({
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [showFlipbook, setShowFlipbook] = useState(false)
+  const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function stopPolling() {
+    if (pollInterval.current) {
+      clearInterval(pollInterval.current)
+      pollInterval.current = null
+    }
+    setGenerating(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (pollInterval.current) clearInterval(pollInterval.current)
+    }
+  }, [])
+
+  const flipbookPages = useMemo(() => {
+    if (!product) return []
+    return buildFlipbookPages({
+      title: product.title,
+      author: product.profile?.name || 'Você',
+      promise: product.promise,
+      chapters: product.chapters.map((chapter) => ({
+        order: chapter.order,
+        type: chapter.type,
+        title: chapter.title,
+        content: chapter.content,
+      })),
+    })
+  }, [product])
 
   useEffect(() => {
     async function loadProduct() {
@@ -65,16 +113,25 @@ export default function ProductDetailPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: product.id }),
       })
-      // Poll for status
-      const interval = setInterval(async () => {
-        const res = await fetch(`/api/products/${product.id}`)
-        const data = await res.json()
-        setProduct(data.product)
-        if (data.product.status === 'ready' || data.product.status === 'failed') {
-          clearInterval(interval)
-          setGenerating(false)
+
+      // Acompanha a geração atualizando a tela
+      pollInterval.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/products/${product.id}`)
+          const data = await res.json()
+          if (!data.product) return
+          setProduct(data.product)
+          if (
+            data.product.status === 'ready' ||
+            data.product.status === 'failed' ||
+            data.product.status === 'published'
+          ) {
+            stopPolling()
+          }
+        } catch (error) {
+          console.error('Polling error:', error)
         }
-      }, 3000)
+      }, 2500)
     } catch (error) {
       console.error('Generation error:', error)
       setGenerating(false)
@@ -137,18 +194,28 @@ export default function ProductDetailPage({
       )}
 
       {product.status === 'generating' && (
-        <div className="card text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4" />
-          <p className="text-gray-600">Gerando seu ebook...</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Isso pode levar alguns minutos. Você pode sair e voltar depois.
-          </p>
-        </div>
+        <GenerationMotion
+          title={product.title}
+          chapters={product.chapters}
+          currentChapter={product.generationJobs?.[0]?.currentChapter ?? 0}
+          totalChapters={product.generationJobs?.[0]?.totalChapters ?? 14}
+          progress={product.generationJobs?.[0]?.progress ?? 0}
+          status={product.generationJobs?.[0]?.status ?? 'running'}
+        />
       )}
 
       {product.chapters.length > 0 && (
         <div className="card">
-          <h2 className="font-semibold text-gray-900 mb-4">Capítulos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">Capítulos</h2>
+            <button
+              onClick={() => setShowFlipbook(true)}
+              className="text-sm text-brand-600 hover:underline"
+              type="button"
+            >
+              📖 Ler no flipbook
+            </button>
+          </div>
           <div className="space-y-2">
             {product.chapters.map((ch) => (
               <div
@@ -177,6 +244,27 @@ export default function ProductDetailPage({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {product.status === 'ready' && (
+        <div className="card bg-gradient-to-br from-brand-50 via-white to-white">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="font-semibold text-gray-900">Seu ebook está pronto</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {product.chapters.length} capítulos escritos e revisados. Abra o flipbook para
+                ler o material como um livro digital, com capa e virada de página.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowFlipbook(true)}
+              className="btn-primary whitespace-nowrap"
+              type="button"
+            >
+              Abrir flipbook
+            </button>
           </div>
         </div>
       )}
@@ -227,6 +315,15 @@ export default function ProductDetailPage({
             Publicar página de vendas
           </button>
         </div>
+      )}
+
+      {showFlipbook && (
+        <Flipbook
+          pages={flipbookPages}
+          title={product.title}
+          author={product.profile?.name || 'Você'}
+          onClose={() => setShowFlipbook(false)}
+        />
       )}
     </div>
   )
