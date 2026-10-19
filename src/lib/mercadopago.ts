@@ -155,6 +155,70 @@ export interface MercadoPagoPayment {
   transaction_amount?: number
 }
 
+/**
+ * Preferência de pagamento da venda de um ebook (página de vendas do autor).
+ * O `external_reference` é o id do registro em `Sales`.
+ */
+export async function createEbookPreference(input: {
+  salesId: string
+  title: string
+  priceCents: number
+  buyerEmail: string
+  buyerName?: string
+  appUrl: string
+  productSlug?: string | null
+}): Promise<MercadoPagoPreference> {
+  const { accessToken } = await getMercadoPagoConfig()
+  if (!accessToken) {
+    throw new Error('Pagamento indisponível: credencial do Mercado Pago não configurada.')
+  }
+
+  const backUrl = input.productSlug
+    ? `${input.appUrl}/p/${input.productSlug}`
+    : `${input.appUrl}/planos`
+
+  const response = await fetch(`${MP_API}/checkout/preferences`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      items: [
+        {
+          title: input.title,
+          quantity: 1,
+          currency_id: 'BRL',
+          unit_price: input.priceCents / 100,
+        },
+      ],
+      external_reference: input.salesId,
+      payer: { email: input.buyerEmail, name: input.buyerName || undefined },
+      back_urls: {
+        success: `${backUrl}?comprado=1`,
+        pending: `${backUrl}?comprado=pendente`,
+        failure: `${backUrl}?comprado=falha`,
+      },
+      auto_return: 'approved',
+      notification_url: `${input.appUrl}/api/webhooks/mercadopago`,
+      metadata: {
+        salesId: input.salesId,
+        productSlug: input.productSlug || '',
+        buyerEmail: input.buyerEmail,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(
+      `MercadoPago recusou a preferência (HTTP ${response.status}): ${body.slice(0, 200)}`
+    )
+  }
+
+  return (await response.json()) as MercadoPagoPreference
+}
+
 export async function getPayment(paymentId: string): Promise<MercadoPagoPayment | null> {
   const { accessToken } = await getMercadoPagoConfig()
   if (!accessToken) return null

@@ -4,16 +4,21 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import { resolveCover } from '@/lib/cover'
+import { isMercadoPagoConfigured } from '@/lib/mercadopago'
 import { EbookCover } from '@/components/ebook-cover'
 import { FlipbookPreview } from './_flipbook-preview'
 import { BuyButton } from './_buy-button'
+import { CheckoutBox } from './_checkout-box'
 
 interface SalesPageProps {
   params: Promise<{ slug: string }>
 }
 
-export default async function SalesPage({ params }: SalesPageProps) {
-  const { slug } = await params
+export default async function SalesPage({
+  params,
+  searchParams,
+}: SalesPageProps & { searchParams: Promise<{ comprado?: string }> }) {
+  const [{ slug }, { comprado }] = await Promise.all([params, searchParams])
 
   const salesPage = await prisma.salesPage.findUnique({
     where: { slug },
@@ -37,6 +42,8 @@ export default async function SalesPage({ params }: SalesPageProps) {
     coverChoice: product.coverChoice,
     coverConcept: product.coverConcept,
   })
+
+  const mpEnabled = await isMercadoPagoConfigured()
 
   const flipbookPages = buildFlipbookPages({
     title: product.title,
@@ -84,13 +91,26 @@ export default async function SalesPage({ params }: SalesPageProps) {
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
           <p className="text-lg text-gray-600 mb-8">{product.promise}</p>
 
-          {product.price && product.purchaseLink && (
+          {product.price ? (
+            <div className="max-w-md mx-auto text-left">
+              <CheckoutBox
+                productId={product.id}
+                title={product.title}
+                price={product.price}
+                slug={product.slug || salesPage.slug}
+                salesPageId={salesPage.id}
+                mpEnabled={mpEnabled}
+                externalLink={product.purchaseLink}
+                purchased={comprado}
+              />
+            </div>
+          ) : product.purchaseLink ? (
             <BuyButton
               href={product.purchaseLink}
-              price={product.price}
+              price={product.price || 0}
               salesPageId={salesPage.id}
             />
-          )}
+          ) : null}
         </div>
       </section>
 

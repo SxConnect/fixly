@@ -1,6 +1,37 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getMercadoPagoConfig, getPayment, verifyWebhookSignature } from '@/lib/mercadopago'
+import { processEbookSale } from '@/lib/ebook-sales'
+
+/**
+ * Venda de ebook aprovada: libera o link de download (30 usos / 30 dias) e
+ * envia o e-mail com o link.
+ */
+async function handleEbookSale(
+  salesId: string,
+  payment: { id: number; status: string; transaction_amount?: number },
+  body: unknown
+) {
+  const result = await processEbookSale(salesId, payment)
+
+  if (result.status === 'not_found') {
+    return NextResponse.json({ error: 'Sale not found' }, { status: 404 })
+  }
+
+  await prisma.webhookEvent.upsert({
+    where: { idempotencyKey: `mercadopago:${payment.id}:${payment.status}` },
+    create: {
+      platform: 'mercadopago',
+      eventType: String((body as { type?: string })?.type ?? 'payment'),
+      payload: JSON.parse(JSON.stringify(payment)),
+      processed: true,
+      idempotencyKey: `mercadopago:${payment.id}:${payment.status}`,
+    },
+    update: { processed: true },
+  })
+
+  return NextResponse.json({ received: true, status: result.status })
+}
 
 export async function POST(request: Request) {
   try {
@@ -45,8 +76,9 @@ export async function POST(request: Request) {
       include: { plan: true },
     })
 
+    // Não é um pedido de plano: pode ser a venda de um ebook (Sales)
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      return await handleEbookSale(orderId, payment, body)
     }
 
     // Idempotência: pedido já aprovado não muda de status

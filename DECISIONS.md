@@ -293,3 +293,22 @@ sociais, formulário curto e design focado.
 - A contracapa é **SVG** no flipbook (mesma paleta da capa) e uma página própria no
   PDF editorial (`buildBackCoverSvg` + layout do react-pdf)
 - O link/QR aponta sempre para o domínio configurado em `NEXT_PUBLIC_APP_URL`
+
+## Área de checkout na página de vendas (2026-10-19)
+
+- A página pública do ebook agora tem um **bloco de checkout**: preço, campos
+  de nome e e-mail e o botão de compra (Pix, cartão ou boleto via Mercado Pago)
+- Se o autor também deixou um **link externo** (Kiwify/Hotmart), ele aparece
+  como alternativa, com o tracking de clique
+- O retorno do checkout mostra o estado na própria página: aprovado (o link de
+  download foi enviado por e-mail), pendente ou falha
+- Novo endpoint `POST /api/checkout/ebook`: cria o registro em `Sales` e a
+  preferência no Mercado Pago (`external_reference` = id da venda)
+- O **webhook agora trata as duas operações**:
+  - `Order` (assinatura de plano) → ativa a assinatura
+  - `Sales` (venda de ebook) → aprova a venda, cria o `DownloadLink`
+    (30 usos / 30 dias) e envia o e-mail com o link (`processEbookSale`)
+- **O download do ebook foi implementado de verdade**: antes era um stub que
+  devolvia JSON; agora `/download/[token]` gera e entrega o PDF (capa, sumário,
+  capítulos e contracapa), respeitando expiração, revogação e o limite de usos
+- O QR code fica **apenas na contracapa**, nunca na capa
