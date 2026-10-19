@@ -40,6 +40,13 @@ export async function POST(
 
     const link = `${appUrl}/p/${slug}`
 
+    const body = await request.json().catch(() => ({}))
+    const previous = Array.isArray(body?.previous)
+      ? body.previous.filter((text: unknown): text is string => typeof text === 'string')
+      : []
+    const angle = typeof body?.angle === 'string' ? body.angle : undefined
+    const count = angle ? 1 : 3
+
     const copies = await generateSalesCopy(
       {
         title: product.title,
@@ -47,7 +54,8 @@ export async function POST(
         niche: product.niche,
         audience: product.audience,
       },
-      link
+      link,
+      { previous, angle, count }
     )
 
     return NextResponse.json({ success: true, link, copies })

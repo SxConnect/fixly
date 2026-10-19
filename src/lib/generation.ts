@@ -286,13 +286,19 @@ Responda apenas com JSON.`,
 }
 
 /**
- * Gera textos de venda para divulgar o ebook em grupos do Facebook.
- * Três ângulos: curiosidade, benefício direto e oferta.
+ * Gera textos de venda para divulgar o ebook.
+ *
+ * `previous` alimenta o prompt com os textos já escritos para a IA não
+ * repetir — cada clique em "gerar nova" sai diferente.
  */
 export async function generateSalesCopy(
   product: { title: string; promise: string; niche: string; audience: string | null },
-  link: string
+  link: string,
+  options: { previous?: string[]; angle?: string; count?: number } = {}
 ): Promise<Array<{ angle: string; text: string }>> {
+  const previous = (options.previous || []).filter(Boolean)
+  const count = options.count ?? 3
+  const angles = ['curiosidade', 'benefício direto', 'oferta']
   const fallback = [
     {
       angle: 'Curiosidade',
@@ -317,11 +323,18 @@ export async function generateSalesCopy(
         content: `Você escreve posts para vender ebooks em grupos do Facebook.
 
 Regras:
-- 3 textos: um de curiosidade, um de benefício direto e um de oferta
+- Escreva ${count} ${count === 1 ? 'texto' : 'textos'} no ângulo: ${options.angle || angles.slice(0, count).join(', ')}
 - Curto, com quebras de linha e 1 a 2 emojis
 - SEM prometer renda, resultado garantido ou milagre
 - Inclua o link exatamente assim no final: ${link}
 - Tom direto, como quem compartilha algo útil
+${
+  previous.length
+    ? `- IMPORTANTE: você JÁ escreveu estas versões. Escreva algo DIFERENTE (outro ângulo, outra abertura, outro exemplo) — não repita nem parafraseie:\n${previous
+        .map((text) => `  • "${text.split('\n')[0].slice(0, 110)}"`)
+        .join('\n')}`
+    : ''
+}
 
 Responda apenas com JSON: { "copies": [ { "angle": "...", "text": "..." }, ... ] }`,
       },
@@ -338,11 +351,11 @@ Público: ${product.audience || 'pessoas interessadas no tema'}`,
       .map((copy) => ({ angle: copy.angle, text: copy.text }))
       .filter((copy) => copy.text && copy.text.length > 20)
 
-    if (copies.length >= 2) return copies.slice(0, 3)
-    return fallback
+    if (copies.length >= 1) return copies.slice(0, Math.max(count, 1))
+    return fallback.slice(0, count)
   } catch (error) {
     console.warn('Falha ao gerar copy de venda:', error)
-    return fallback
+    return fallback.slice(0, count)
   }
 }
 

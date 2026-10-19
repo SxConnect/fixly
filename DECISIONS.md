@@ -330,3 +330,22 @@ sociais, formulário curto e design focado.
 - **Copy de venda com IA** (`POST /api/products/[id]/copy`): 3 ângulos
   (curiosidade, benefício e oferta) com o link da página de vendas no final,
   sem promessa de renda — o autor clica em "Copiar texto" e cola no grupo
+
+## Kit de divulgação sem API de rede social (2026-10-19)
+
+- **Removida** a integração com a API do Facebook (conexão por token, listagem de
+  grupos, tabelas `FacebookAccount`/`FacebookGroup` e a migration). Não é usada
+  nenhuma API de rede social: o autor gera a arte e o texto e divulga por conta
+  própria
+- O card **"Kit de divulgação"** tem:
+  1. **Arte**: feed 1200×630 e story 1080×1920 em PNG, desenhados no navegador
+     com a capa escolhida (foto + paleta), preço, "Compre agora" e o link
+  2. **Texto de venda**: campos **editáveis** (textarea) — o autor ajusta o que
+     quiser antes de copiar
+  3. **Botão "Gerar nova"** em cada texto: a IA recebe os textos anteriores no
+     prompt e escreve uma versão diferente (testado: 0 textos idênticos entre
+     gerações consecutivas)
+  4. **Botão "Gerar novas opções"** para refazer o conjunto inteiro
+  5. Campo livre para o autor escrever o próprio texto
+  6. Textos e artes salvos no painel (`PromoAsset` tipo `post`) com copiar,
+     baixar arte e remover
