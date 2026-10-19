@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { GenerationMotion } from '@/components/generation-motion'
 import { Flipbook } from '@/components/flipbook'
 import { CoverSection } from './_cover-section'
+import { Promotion } from './_promotion'
 import { EbookPanel } from './_ebook-panel'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import type { StoredCover } from '@/lib/cover'
@@ -410,6 +411,22 @@ export default function ProductDetailPage({
           stored={product.coverConcept ?? null}
           onChange={(stored) =>
             setProduct((current) => (current ? { ...current, coverConcept: stored } : current))
+          }
+        />
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
+        <Promotion
+          productId={product.id}
+          title={product.title}
+          promise={product.promise}
+          price={product.price}
+          slug={product.slug}
+          coverConcept={
+            product.coverConcept?.variants?.[product.coverConcept.selected] ?? null
+          }
+          siteUrl={
+            process.env.NEXT_PUBLIC_APP_URL || 'https://fixly-psi-three.vercel.app'
           }
         />
       )}

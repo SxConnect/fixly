@@ -312,3 +312,21 @@ sociais, formulário curto e design focado.
   devolvia JSON; agora `/download/[token]` gera e entrega o PDF (capa, sumário,
   capítulos e contracapa), respeitando expiração, revogação e o limite de usos
 - O QR code fica **apenas na contracapa**, nunca na capa
+
+## Divulgação em grupos do Facebook (2026-10-19)
+
+- **Sem OAuth do app e sem aprovação do Facebook**: o autor conecta a conta
+  colando um **User Access Token** do Graph API Explorer (escopos `user_groups` e
+  `public_profile`) — ele só precisa estar logado no Facebook
+- O token é gravado **criptografado** (`FacebookAccount.accessToken`) e só a
+  conta dele enxerga os grupos
+- `GET /api/facebook/groups` sincroniza a lista de grupos do autor
+- **Sem postar automático** (o Facebook só libera `publish_to_groups` após
+  aprovação do app): o app gera o material e o autor cola no grupo
+- **Artes de divulgação** (`src/lib/post-image.ts`, desenhadas no navegador):
+  - feed 1200×630 e story 1080×1920, usando a **capa escolhida** (foto +
+    paleta) com título em serif, promessa, selo de preço, "Compre agora" e o link
+  - download em PNG pronto para subir no Facebook
+- **Copy de venda com IA** (`POST /api/products/[id]/copy`): 3 ângulos
+  (curiosidade, benefício e oferta) com o link da página de vendas no final,
+  sem promessa de renda — o autor clica em "Copiar texto" e cola no grupo

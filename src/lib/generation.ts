@@ -286,6 +286,67 @@ Responda apenas com JSON.`,
 }
 
 /**
+ * Gera textos de venda para divulgar o ebook em grupos do Facebook.
+ * Três ângulos: curiosidade, benefício direto e oferta.
+ */
+export async function generateSalesCopy(
+  product: { title: string; promise: string; niche: string; audience: string | null },
+  link: string
+): Promise<Array<{ angle: string; text: string }>> {
+  const fallback = [
+    {
+      angle: 'Curiosidade',
+      text: `🚀 Acabei de lançar "${product.title}"!\n\n${product.promise}\n\nSe você quer ${product.audience || 'aprender mais sobre esse tema'}, esse material foi feito para você.\n\n👇 Link da oferta:\n${link}`,
+    },
+    {
+      angle: 'Benefício',
+      text: `📚 "${product.title}"\n\n${product.promise}\n\nSão 12 capítulos e 2 anexos práticos, com capa e leitura online no celular.\n\nBaixe agora:\n${link}`,
+    },
+    {
+      angle: 'Oferta',
+      text: `🔥 "${product.title}" — ebook completo por ${process.env.PRICE_LABEL || 'preço especial'}\n\n${product.promise}\n\n⬇️ Garanta o seu:\n${link}`,
+    },
+  ]
+
+  try {
+    const result = await generateJSON<{
+      copies: Array<{ angle: string; text: string }>
+    }>([
+      {
+        role: 'system',
+        content: `Você escreve posts para vender ebooks em grupos do Facebook.
+
+Regras:
+- 3 textos: um de curiosidade, um de benefício direto e um de oferta
+- Curto, com quebras de linha e 1 a 2 emojis
+- SEM prometer renda, resultado garantido ou milagre
+- Inclua o link exatamente assim no final: ${link}
+- Tom direto, como quem compartilha algo útil
+
+Responda apenas com JSON: { "copies": [ { "angle": "...", "text": "..." }, ... ] }`,
+      },
+      {
+        role: 'user',
+        content: `Ebook: ${product.title}
+Promessa: ${product.promise}
+Nicho: ${product.niche}
+Público: ${product.audience || 'pessoas interessadas no tema'}`,
+      },
+    ])
+
+    const copies = (result.copies || [])
+      .map((copy) => ({ angle: copy.angle, text: copy.text }))
+      .filter((copy) => copy.text && copy.text.length > 20)
+
+    if (copies.length >= 2) return copies.slice(0, 3)
+    return fallback
+  } catch (error) {
+    console.warn('Falha ao gerar copy de venda:', error)
+    return fallback
+  }
+}
+
+/**
  * Cria o conceito de capa do ebook: paleta, ilustração (motivo), título de
  * capa e texto de apoio — sempre coerentes com o título do material.
  */
