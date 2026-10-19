@@ -344,6 +344,11 @@ model LandingConfig {
   faq               Json?
   plansTitle        String   @default("Plano gratuito, limites claros")
   plansSubtitle     String   @default("Você acompanha o consumo no painel. Nada de letra miúda.")
+  testimonials      Json?
+  showSocialProof   Boolean  @default(true)
+  showGallery       Boolean  @default(true)
+  galleryTitle      String   @default("Feitos na plataforma")
+  gallerySubtitle   String   @default("Capas e páginas criadas com o Fixly.")
   footerNote        String   @default("A IA escreve um rascunho. Você lê, corrige e responde pelo que publica. O Fixly não garante vendas nem renda.")
   updatedAt         DateTime @updatedAt
 }

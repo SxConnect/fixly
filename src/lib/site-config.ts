@@ -106,6 +106,13 @@ export const DEFAULT_FAQ: FaqItem[] = [
   },
 ]
 
+export interface Testimonial {
+  quote: string
+  name: string
+  role?: string
+  avatarUrl?: string
+}
+
 export interface SiteConfig {
   brandName: string
   heroTitle: string
@@ -128,6 +135,11 @@ export interface SiteConfig {
   faq: FaqItem[]
   plansTitle: string
   plansSubtitle: string
+  testimonials: Testimonial[]
+  showSocialProof: boolean
+  showGallery: boolean
+  galleryTitle: string
+  gallerySubtitle: string
   footerNote: string
 }
 
@@ -154,6 +166,11 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   faq: DEFAULT_FAQ,
   plansTitle: 'Plano gratuito, limites claros',
   plansSubtitle: 'Você acompanha o consumo no painel. Nada de letra miúda.',
+  testimonials: [],
+  showSocialProof: true,
+  showGallery: true,
+  galleryTitle: 'Feitos na plataforma',
+  gallerySubtitle: 'Capas e páginas criadas com o Fixly.',
   footerNote:
     'A IA escreve um rascunho. Você lê, corrige e responde pelo que publica. O Fixly não garante vendas nem renda.',
 }
@@ -197,6 +214,11 @@ export async function getSiteConfig(): Promise<SiteConfig> {
       faq: asList<FaqItem>(config.faq, DEFAULT_FAQ),
       plansTitle: config.plansTitle || DEFAULT_SITE_CONFIG.plansTitle,
       plansSubtitle: config.plansSubtitle || DEFAULT_SITE_CONFIG.plansSubtitle,
+      testimonials: asList<Testimonial>(config.testimonials, []),
+      showSocialProof: config.showSocialProof,
+      showGallery: config.showGallery,
+      galleryTitle: config.galleryTitle || DEFAULT_SITE_CONFIG.galleryTitle,
+      gallerySubtitle: config.gallerySubtitle || DEFAULT_SITE_CONFIG.gallerySubtitle,
       footerNote: config.footerNote || DEFAULT_SITE_CONFIG.footerNote,
     }
   } catch (error) {

@@ -52,6 +52,9 @@ export default function ProductDetailPage({
   const [showFlipbook, setShowFlipbook] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(null)
+  const [price, setPrice] = useState('')
+  const [purchaseLink, setPurchaseLink] = useState('')
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
@@ -148,36 +151,50 @@ export default function ProductDetailPage({
     setPublishing(true)
     setPublishError('')
 
-    try {
-      const price = parseFloat(
-        (document.getElementById('price') as HTMLInputElement).value
-      )
-      const purchaseLink = (document.getElementById('purchaseLink') as HTMLInputElement)
-        .value
+    // Validação no cliente: evita erro 400 e mensagem confusa
+    const parsedPrice = Number(price.replace(',', '.'))
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      setPublishError('Informe o preço do ebook (ex.: 49.90).')
+      setPublishing(false)
+      return
+    }
 
+    const link = purchaseLink.trim()
+    if (!/^https?:\/\/.+/i.test(link)) {
+      setPublishError('Informe um link de compra válido começando com https://')
+      setPublishing(false)
+      return
+    }
+
+    try {
       const response = await fetch('/api/sales-page/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, price, purchaseLink }),
+        body: JSON.stringify({ productId: product.id, price: parsedPrice, purchaseLink: link }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao publicar a página de vendas')
+        throw new Error(
+          typeof data?.error === 'string' && !data.error.startsWith('[')
+            ? data.error
+            : 'Não foi possível publicar. Revise o preço e o link de compra.'
+        )
       }
 
       const slug = data.slug || data.salesPage?.slug
       if (!slug) throw new Error('A página foi publicada, mas o link não foi retornado')
 
+      setPublishedSlug(slug)
       setProduct((current) =>
         current
           ? {
               ...current,
               status: 'published',
               slug,
-              price,
-              purchaseLink,
+              price: parsedPrice,
+              purchaseLink: link,
             }
           : current
       )
@@ -348,12 +365,13 @@ export default function ProductDetailPage({
               Preço (R$)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               id="price"
               className="input-field"
               placeholder="49.90"
-              step="0.01"
-              defaultValue={product.price ?? ''}
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
             />
           </div>
           <div>
@@ -365,13 +383,23 @@ export default function ProductDetailPage({
               id="purchaseLink"
               className="input-field"
               placeholder="https://..."
-              defaultValue={product.purchaseLink ?? ''}
+              value={purchaseLink}
+              onChange={(event) => setPurchaseLink(event.target.value)}
             />
           </div>
 
           {publishError && (
             <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">
               {publishError}
+            </div>
+          )}
+
+          {publishedSlug && (
+            <div className="bg-brand-50 text-brand-700 px-4 py-3 rounded-xl text-sm">
+              Página publicada!{' '}
+              <Link href={`/p/${publishedSlug}`} className="font-medium underline">
+                Ver página de vendas
+              </Link>
             </div>
           )}
 

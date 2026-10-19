@@ -163,6 +163,19 @@ export async function deletePlan(formData: FormData) {
   revalidatePath('/planos')
 }
 
+/** "frase | nome | cargo" (um por linha) */
+function parseTestimonialLines(raw: string) {
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [quote = '', name = '', role = ''] = line.split('|').map((part) => part.trim())
+      return { quote, name, role: role || undefined }
+    })
+    .filter((item) => item.quote && item.name)
+}
+
 // ---------------------------------------------------------------------------
 // Landing page
 // ---------------------------------------------------------------------------
@@ -192,6 +205,11 @@ export async function saveLandingConfig(formData: FormData) {
     faq: parseFaqLines(str(formData, 'faq')),
     plansTitle: str(formData, 'plansTitle'),
     plansSubtitle: str(formData, 'plansSubtitle'),
+    testimonials: parseTestimonialLines(str(formData, 'testimonials')),
+    showSocialProof: bool(formData, 'showSocialProof'),
+    showGallery: bool(formData, 'showGallery'),
+    galleryTitle: str(formData, 'galleryTitle'),
+    gallerySubtitle: str(formData, 'gallerySubtitle'),
     footerNote: str(formData, 'footerNote'),
   }
 

@@ -3,7 +3,13 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { generateCoverConcept } from '@/lib/generation'
-import { buildFallbackConcept, isCoverConcept, type StoredCover } from '@/lib/cover'
+import {
+  buildFallbackConcept,
+  isCoverConcept,
+  type CoverConcept,
+  type StoredCover,
+} from '@/lib/cover'
+import { persistRemoteImage, uploadImage } from '@/lib/blob-storage'
 
 export async function POST(
   request: Request,
@@ -24,6 +30,58 @@ export async function POST(
 
     if (!product) {
       return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 })
+    }
+
+    const contentType = request.headers.get('content-type') || ''
+
+    // Upload de imagem pelo autor
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      const file = formData.get('file')
+
+      if (!(file instanceof File) || file.size === 0) {
+        return NextResponse.json({ error: 'Envie um arquivo de imagem' }, { status: 400 })
+      }
+
+      const uploaded = await uploadImage(file, `covers/${product.id}/${Date.now()}-${file.name}`)
+
+      if (!uploaded) {
+        return NextResponse.json(
+          { error: 'Armazenamento de imagens indisponível neste ambiente.' },
+          { status: 500 }
+        )
+      }
+
+      const base =
+        buildFallbackConcept({
+          title: product.title,
+          promise: product.promise,
+          variant: 3,
+        }) as CoverConcept
+
+      const concept: CoverConcept = {
+        ...base,
+        title: product.title,
+        subtitle: (product.promise || base.subtitle).slice(0, 110),
+        imageUrl: uploaded.url,
+        imageThumbUrl: uploaded.url,
+        imageCredit: 'Sua imagem',
+        imageSource: 'Enviada pelo autor',
+      }
+
+      const stored = product.coverConcept as StoredCover | null
+      const variants = [...(stored?.variants ?? []), concept]
+      const selected = variants.length - 1
+
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          coverConcept: { variants, selected } as unknown as Prisma.InputJsonValue,
+          coverChoice: uploaded.url,
+        },
+      })
+
+      return NextResponse.json({ success: true, cover: { variants, selected } })
     }
 
     const body = await request.json().catch(() => ({}))
@@ -80,6 +138,19 @@ export async function POST(
       variants.push(
         buildFallbackConcept({ title: product.title, promise: product.promise, variant: 1 })
       )
+    }
+
+    // Guarda as fotos no Blob (a capa não depende do servidor de origem)
+    for (const [index, concept] of variants.entries()) {
+      if (!concept.imageUrl) continue
+      const stored = await persistRemoteImage(
+        concept.imageUrl,
+        `covers/${product.id}/${Date.now()}-${index}.jpg`
+      )
+      if (stored) {
+        concept.imageUrl = stored
+        concept.imageThumbUrl = stored
+      }
     }
 
     const stored: StoredCover = { variants, selected: 0 }

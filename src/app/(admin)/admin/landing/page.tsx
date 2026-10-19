@@ -17,6 +17,10 @@ function faqToText(items: { q: string; a: string }[]): string {
   return items.map((item) => `${item.q} | ${item.a}`).join('\n')
 }
 
+function testimonialsToText(items: { quote: string; name: string; role?: string }[]): string {
+  return items.map((item) => `${item.quote} | ${item.name}${item.role ? ` | ${item.role}` : ''}`).join('\n')
+}
+
 export default async function AdminLandingPage() {
   await requireAdmin()
 
@@ -153,6 +157,49 @@ export default async function AdminLandingPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Subtítulo da seção de planos</label>
             <input name="plansSubtitle" defaultValue={config.plansSubtitle} className="input-field" />
+          </div>
+
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+            <h3 className="font-semibold text-amber-900 text-sm">Prova social e galeria</h3>
+            <p className="text-amber-800/80 text-xs mt-1">
+              A prova social usa números reais da plataforma (contagem no banco) e a galeria
+              mostra as capas criadas de verdade pelos autores.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="showSocialProof" defaultChecked={config.showSocialProof} /> Exibir números
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="showGallery" defaultChecked={config.showGallery} /> Exibir galeria
+              </label>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Título da galeria</label>
+                <input name="galleryTitle" defaultValue={config.galleryTitle} className="input-field !py-2 !text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Subtítulo da galeria</label>
+                <input name="gallerySubtitle" defaultValue={config.gallerySubtitle} className="input-field !py-2 !text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Depoimentos (frase | nome | cargo, um por linha)
+            </label>
+            <textarea
+              name="testimonials"
+              rows={5}
+              defaultValue={testimonialsToText(config.testimonials)}
+              className="input-field"
+              placeholder={'Em uma tarde escrevi e publiquei meu ebook | Maria Souza | Autora de ebook'}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              A seção de depoimentos só aparece na landing page se houver pelo menos um
+              depoimento. Use falas reais dos seus clientes.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Aviso do rodapé</label>

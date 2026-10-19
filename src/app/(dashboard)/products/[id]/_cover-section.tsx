@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { EbookCover, coverDataUrl } from '@/components/ebook-cover'
 import type { CoverConcept, StoredCover } from '@/lib/cover'
 
@@ -14,7 +14,9 @@ interface CoverSectionProps {
 
 export function CoverSection({ productId, title, author, stored, onChange }: CoverSectionProps) {
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
 
   const variants = stored?.variants ?? []
   const selected = stored?.selected ?? 0
@@ -36,6 +38,29 @@ export function CoverSection({ productId, title, author, stored, onChange }: Cov
       setError(err instanceof Error ? err.message : 'Erro ao gerar a capa')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function upload(file: File) {
+    setUploading(true)
+    setError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/products/${productId}/cover`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Erro ao enviar a imagem')
+
+      onChange(data.cover as StoredCover)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao enviar a imagem')
+    } finally {
+      setUploading(false)
+      if (fileInput.current) fileInput.current.value = ''
     }
   }
 
@@ -71,12 +96,37 @@ export function CoverSection({ productId, title, author, stored, onChange }: Cov
         <div>
           <h2 className="font-semibold text-gray-900">Capa do ebook</h2>
           <p className="text-sm text-gray-600 mt-0.5">
-            A capa é criada a partir do título: paleta, ilustração e texto de apoio.
+            A capa usa o título do ebook: foto de banco de imagens gratuito, paleta e texto de
+            apoio. Você também pode enviar a sua própria imagem.
           </p>
         </div>
-        <button onClick={generate} disabled={loading} className="btn-secondary !py-2 !px-4 !text-sm !min-h-0">
-          {loading ? 'Criando capas...' : variants.length ? 'Criar novas opções' : 'Criar capa'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => fileInput.current?.click()}
+            disabled={uploading}
+            className="btn-secondary !py-2 !px-4 !text-sm !min-h-0"
+            type="button"
+          >
+            {uploading ? 'Enviando...' : 'Enviar imagem'}
+          </button>
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="btn-secondary !py-2 !px-4 !text-sm !min-h-0"
+          >
+            {loading ? 'Criando capas...' : variants.length ? 'Criar novas opções' : 'Criar capa'}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/avif"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) upload(file)
+            }}
+          />
+        </div>
       </div>
 
       {error && (
@@ -100,15 +150,24 @@ export function CoverSection({ productId, title, author, stored, onChange }: Cov
                   className="w-full aspect-[2/3] object-cover"
                 />
               </button>
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-gray-500">
                   Opção {index + 1}
-                  {selected === index && <span className="text-brand-600 font-medium"> · escolhida</span>}
+                  {selected === index && (
+                    <span className="text-brand-600 font-medium"> · escolhida</span>
+                  )}
+                  {concept.imageUrl && (
+                    <span className="block text-[10px] text-gray-400">
+                      {concept.imageCredit
+                        ? `Foto: ${concept.imageCredit} (${concept.imageSource})`
+                        : 'Com foto'}
+                    </span>
+                  )}
                 </span>
                 <button
                   onClick={() => download(concept, index)}
                   type="button"
-                  className="text-brand-600 hover:underline"
+                  className="text-brand-600 hover:underline shrink-0"
                 >
                   Baixar SVG
                 </button>

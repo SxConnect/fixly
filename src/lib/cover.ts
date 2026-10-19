@@ -17,6 +17,13 @@ export interface CoverConcept {
   palette: CoverPaletteName
   motif: string
   style: CoverStyle
+  /** Foto de banco de imagens gratuita (se encontrada) */
+  imageUrl?: string
+  imageThumbUrl?: string
+  imageCredit?: string
+  imageSource?: string
+  /** Query usada na busca da foto */
+  imageQuery?: string
 }
 
 export const COVER_PALETTES: Record<
@@ -185,6 +192,25 @@ export function buildCoverSvg(
 
   // IDs únicos: várias capas na mesma página não podem compartilhar gradiente
   const uid = hashString(`${concept.title}|${concept.palette}|${concept.motif}`).toString(36)
+  const hasPhoto = Boolean(concept.imageUrl)
+
+  const background = hasPhoto
+    ? `<image href="${escapeXml(concept.imageUrl as string)}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="${width}" height="${height}" fill="url(#photo-${uid})"/>`
+    : `<rect width="${width}" height="${height}" fill="url(#bg-${uid})"/>
+  ${circles
+    .map(
+      (circle) =>
+        `<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}" fill="#ffffff" opacity="${circle.o}"/>`
+    )
+    .join('\n  ')}
+  <rect width="${width}" height="${height}" fill="url(#glow-${uid})"/>`
+
+  const motif = hasPhoto
+    ? ''
+    : `<g>
+    <text x="${width * 0.5}" y="${height * 0.185}" font-size="${width * 0.3}" text-anchor="middle" dominant-baseline="middle">${concept.motif}</text>
+  </g>`
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${escapeXml(concept.title)}">
   <defs>
@@ -196,22 +222,19 @@ export function buildCoverSvg(
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="photo-${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1019" stop-opacity="0.55"/>
+      <stop offset="38%" stop-color="#0b1019" stop-opacity="0.15"/>
+      <stop offset="62%" stop-color="#0b1019" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="#0b1019" stop-opacity="0.92"/>
+    </linearGradient>
   </defs>
 
-  <rect width="${width}" height="${height}" fill="url(#bg-${uid})"/>
-  ${circles
-    .map(
-      (circle) =>
-        `<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}" fill="#ffffff" opacity="${circle.o}"/>`
-    )
-    .join('\n  ')}
-  <rect width="${width}" height="${height}" fill="url(#glow-${uid})"/>
+  ${background}
 
-  <g>
-    <text x="${width * 0.5}" y="${height * 0.185}" font-size="${width * 0.3}" text-anchor="middle" dominant-baseline="middle">${concept.motif}</text>
-  </g>
+  ${motif}
 
-  <g text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" fill="${ink}">
+  <g text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" fill="${hasPhoto ? '#ffffff' : ink}">
     ${titleLines
       .map(
         (line, index) =>
@@ -221,15 +244,20 @@ export function buildCoverSvg(
   </g>
 
   <g text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
-    <rect x="${width * 0.5 - badgeWidth / 2}" y="${height * 0.635}" width="${badgeWidth}" height="34" rx="17" fill="${accent}" opacity="0.92"/>
+    <rect x="${width * 0.5 - badgeWidth / 2}" y="${height * 0.635}" width="${badgeWidth}" height="34" rx="17" fill="${accent}" opacity="0.94"/>
     <text x="${width * 0.5}" y="${height * 0.635 + 23}" font-size="15" font-weight="700" fill="${to}" letter-spacing="1.2">${escapeXml(concept.badge)}</text>
-    <text x="${width * 0.5}" y="${height * 0.705}" font-size="21" fill="${ink}" opacity="0.9">${escapeXml(concept.subtitle.slice(0, 48))}</text>
+    <text x="${width * 0.5}" y="${height * 0.705}" font-size="21" fill="${hasPhoto ? '#ffffff' : ink}" opacity="0.92">${escapeXml(concept.subtitle.slice(0, 48))}</text>
     ${
       concept.subtitle.length > 48
-        ? `<text x="${width * 0.5}" y="${height * 0.74}" font-size="21" fill="${ink}" opacity="0.9">${escapeXml(concept.subtitle.slice(48, 96))}</text>`
+        ? `<text x="${width * 0.5}" y="${height * 0.74}" font-size="21" fill="${hasPhoto ? '#ffffff' : ink}" opacity="0.92">${escapeXml(concept.subtitle.slice(48, 96))}</text>`
         : ''
     }
-    <text x="${width * 0.5}" y="${height * 0.93}" font-size="16" fill="${ink}" opacity="0.72">${escapeXml(options.author || 'Fixly')}</text>
+    <text x="${width * 0.5}" y="${height * 0.93}" font-size="16" fill="${hasPhoto ? '#ffffff' : ink}" opacity="0.75">${escapeXml(options.author || 'Fixly')}</text>
+    ${
+      concept.imageCredit
+        ? `<text x="${width * 0.5}" y="${height * 0.965}" font-size="11" fill="#ffffff" opacity="0.5">Foto: ${escapeXml(concept.imageCredit)} (${escapeXml(concept.imageSource || 'Openverse')})</text>`
+        : ''
+    }
   </g>
 </svg>`
 }

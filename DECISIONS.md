@@ -163,3 +163,34 @@
   - páginas de continuação com cabeçalho corrido ("Capítulo N · título")
   - papel quente, tipografia serifada nos títulos, entrelinha 1.75
   - barra de progresso do livro no topo e controles com a cor da marca
+
+## Landing page focada em conversão (2026-10-19)
+
+Reestruturada seguindo boas práticas de landing page (referência: exemplos da
+RD Station): proposta de valor clara, imagem da oferta, CTA visível, provas
+sociais, formulário curto e design focado.
+
+- **Hero escuro** com a capa real de um ebook da plataforma (mockup 3D) + prévia
+  do flipbook, CTA principal em verde, selos de segurança e link para o funil
+- **Prova social com números REAIS** (`lib/social-proof.ts`): autores, ebooks,
+  capítulos e páginas publicadas contados no banco — nada de número inventado
+- **Galeria** com as capas realmente criadas na plataforma + imagens do admin
+- **Depoimentos** editáveis em `/admin/landing` (frase | nome | cargo). A seção
+  só aparece se houver depoimentos — o admin tem aviso para trocar por falas
+  reais dos clientes
+- **CTA final com formulário curto**: captura só o e-mail e leva ao cadastro
+  (o e-mail já vem preenchido)
+- Faixa de garantias, seções com etiqueta de navegação e FAQ com acordeão
+
+## Capa com foto real + upload do autor (2026-10-19)
+
+- A IA sugere uma **query de busca** e o app busca a foto em bancos gratuitos:
+  **Pexels** (com `PEXELS_API_KEY`) ou **Openverse** (sem chave, imagens
+  Creative Commons). Várias queries são testadas em sequência até achar foto
+- A foto é baixada e guardada no **Vercel Blob** (store `fixly-capas`), para a
+  capa não depender do servidor de origem nem gerar requisição a cada visita
+- O autor pode **enviar a própria imagem** (PNG/JPG/WEBP/AVIF, até 6 MB) —
+  upload via `POST /api/products/[id]/cover` (multipart) e o Blob
+- `BLOB_READ_WRITE_TOKEN` configurado em production/preview
+- Publicação da página de vendas ficou robusta: inputs controlados, validação no
+  cliente (preço > 0 e link começando com https://) e mensagem de erro clara

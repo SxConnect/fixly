@@ -9,6 +9,7 @@ import {
   type CoverPaletteName,
   type CoverStyle,
 } from './cover'
+import { buildImageQuery, searchStockImages } from './stock-images'
 
 const CHAPTER_REVIEW_THRESHOLD = parseFloat(process.env.CHAPTER_REVIEW_THRESHOLD || '7')
 const MAX_REGENERATION_ATTEMPTS = parseInt(process.env.MAX_REGENERATION_ATTEMPTS || '2')
@@ -306,6 +307,7 @@ export async function generateCoverConcept(
       palette: string
       motif: string
       style: string
+      imageQuery: string
     }>([
       {
         role: 'system',
@@ -323,13 +325,14 @@ Regras:
 - "style": soft, bold ou minimal
 - "badge": 2 a 3 palavras em CAIXA ALTA que anunciem o ganho prático (ex.: "GUIA PRÁTICO", "PASSO A PASSO", "DO ZERO AO PRIMEIRO EBOOK")
 - "subtitle": uma frase curta (até 90 caracteres) que combine com o título
+- "imageQuery": uma busca em inglês (2 a 4 palavras) por uma FOTO real de banco de imagens que represente o tema do ebook (ex.: "cat playing with toy", "cooking fresh vegetables", "entrepreneur working laptop")
 ${
   avoid
     ? `- IMPORTANTE: esta é a ${variant}ª opção da capa. Escolha uma paleta e uma ilustração DIFERENTES da anterior (paleta anterior: ${avoid.palette}, ilustração anterior: ${avoid.motif})`
     : ''
 }
 
-Responda apenas com JSON: { "subtitle": "...", "badge": "...", "palette": "...", "motif": "...", "style": "..." }`,
+Responda apenas com JSON: { "subtitle": "...", "badge": "...", "palette": "...", "motif": "...", "style": "...", "imageQuery": "..." }`,
       },
       {
         role: 'user',
@@ -349,6 +352,29 @@ Responda apenas com JSON: { "subtitle": "...", "badge": "...", "palette": "...",
       ? (result.style as CoverStyle)
       : fallback.style
 
+    // Foto real de banco de imagens gratuito (Pexels ou Openverse).
+    // Se a query sugerida pela IA não trouxer nada, tenta outras em sequência.
+    const queries = [
+      result.imageQuery?.trim(),
+      buildImageQuery({ title: product.title, niche: product.niche }),
+      product.niche.toLowerCase().trim(),
+      product.title.toLowerCase().split(' ').slice(0, 3).join(' '),
+    ].filter((query): query is string => Boolean(query))
+
+    let photos: Awaited<ReturnType<typeof searchStockImages>> = []
+    let usedQuery = queries[0] ?? product.niche
+
+    for (const query of queries) {
+      const found = await searchStockImages(query, 6)
+      if (found.length > 0) {
+        photos = found
+        usedQuery = query
+        break
+      }
+    }
+
+    const photo = photos[0]
+
     return {
       title: product.title,
       subtitle: (result.subtitle || fallback.subtitle).slice(0, 110),
@@ -356,6 +382,11 @@ Responda apenas com JSON: { "subtitle": "...", "badge": "...", "palette": "...",
       palette,
       motif,
       style,
+      imageQuery: usedQuery,
+      imageUrl: photo?.url,
+      imageThumbUrl: photo?.thumbUrl,
+      imageCredit: photo?.author,
+      imageSource: photo?.source,
     }
   } catch (error) {
     console.warn('Falha ao gerar conceito de capa, usando padrão:', error)
