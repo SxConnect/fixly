@@ -2,7 +2,17 @@
 // Roda durante o build da Vercel, logo após as migrations.
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+// Escrita direta (sem PgBouncer) para evitar lock em transaction pooling
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
+
+if (!databaseUrl) {
+  console.warn('[seed] DATABASE_URL não configurada — seed ignorado.')
+  process.exit(0)
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: databaseUrl } },
+})
 
 try {
   const existing = await prisma.plan.findFirst({ where: { slug: 'gratuito' } })
