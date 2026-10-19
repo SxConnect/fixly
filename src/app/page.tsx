@@ -488,7 +488,7 @@ export default async function Home() {
             Seu ebook pode estar pronto hoje
           </h2>
           <p className="mt-3 text-brand-50">
-            Crie a conta, descreva seu nicho e revise o primeiro rascunho em minutos.
+            Crie a conta, descreva seu nicho e veja seu primeiro ebook pronto em minutos.
           </p>
 
           <form
@@ -541,8 +541,7 @@ export default async function Home() {
 
           <p className="mt-8 text-xs text-gray-500 max-w-3xl leading-relaxed">
             {config.footerNote}
-          </p>
-        </div>
+          </p>        </div>
       </footer>
     </div>
   )

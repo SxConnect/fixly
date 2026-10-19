@@ -158,15 +158,13 @@ export default async function SalesPage({ params }: SalesPageProps) {
         </div>
       </section>
 
-      {/* Legal */}
+      {/* Legal (visão do comprador) */}
       <footer className="py-8 px-4 border-t border-gray-200">
-        <div className="max-w-2xl mx-auto text-center text-sm text-gray-500">
-          <p className="mb-2">
+        <div className="max-w-2xl mx-auto text-center text-sm text-gray-500 space-y-2">
+          <p>
             Você tem 7 dias para solicitar reembolso conforme o Código de Defesa do Consumidor.
           </p>
-          <p>
-            A IA escreve um rascunho. Leia e corrija antes de vender. Você responde pelo que publica.
-          </p>
+          <p>Material revisado e publicado por {product.profile.name}.</p>
         </div>
       </footer>
     </main>

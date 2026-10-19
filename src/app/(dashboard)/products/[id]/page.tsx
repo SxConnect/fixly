@@ -389,6 +389,16 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
+        <div className="card bg-amber-50/60 border-amber-200">
+          <p className="text-sm text-amber-900">
+            <strong>Antes de publicar:</strong> a IA escreve um rascunho. Leia, corrija e
+            responda pelo que você publica. Esse aviso é interno e não aparece na página de
+            vendas.
+          </p>
+        </div>
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card space-y-4">
           <h2 className="font-semibold text-gray-900">
             {product.status === 'published' ? 'Atualizar página de vendas' : 'Publicar página de vendas'}

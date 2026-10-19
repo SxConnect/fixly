@@ -85,8 +85,8 @@ export const DEFAULT_FAQ: FaqItem[] = [
     a: 'Não. O Fixly cria o material e as ferramentas de divulgação. Quem vende é você, e o app nunca promete renda ou resultado — apenas te ajuda a produzir e medir.',
   },
   {
-    q: 'A IA escreve o ebook inteiro sozinha?',
-    a: 'A IA escreve um rascunho completo (12 capítulos e 2 anexos) e você revisa tudo. O app exige aprovação manual antes de liberar a publicação.',
+    q: 'O que eu recebo ao terminar?',
+    a: 'Um ebook completo com 12 capítulos e 2 anexos práticos, capa, página de vendas pronta para divulgar e um diagnóstico do funil para você acompanhar o resultado.',
   },
   {
     q: 'Posso usar no celular?',
@@ -171,8 +171,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   showGallery: true,
   galleryTitle: 'Feitos na plataforma',
   gallerySubtitle: 'Capas e páginas criadas com o Fixly.',
-  footerNote:
-    'A IA escreve um rascunho. Você lê, corrige e responde pelo que publica. O Fixly não garante vendas nem renda.',
+  // Rodapé público: não exibe orientações internas de autoria
+  footerNote: 'Fixly — plataforma para criar, vender e divulgar ebooks.',
 }
 
 function asList<T>(value: unknown, fallback: T[]): T[] {

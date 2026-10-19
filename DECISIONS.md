@@ -243,3 +243,20 @@ sociais, formulário curto e design focado.
 - O webhook usa o mesmo segredo (painel ou ambiente) para validar a assinatura
 - Há opção de **remover** a credencial salva e o botão "Testar credencial agora"
   valida o token direto com a API do Mercado Pago (`/users/me`)
+
+## Aviso de autoria só para o autor (2026-10-19)
+
+- O aviso "A IA escreve um rascunho. Leia e corrija antes de vender. Você
+  responde pelo que publica." é **orientação interna do autor** e não pode
+  aparecer para quem compra
+- Removido do **rodapé da página pública de vendas** (`/p/[slug]`) — no lugar
+  fica a informação útil ao comprador: direito de reembolso (7 dias, CDC) e
+  "Material revisado e publicado por {autor}"
+- Removido também do **rodapé da landing page** (público): agora é uma linha
+  neutra de apresentação ("Fixly — plataforma para criar, vender e divulgar
+  ebooks."), editável em `/admin/landing`
+- A pergunta do FAQ público sobre a produção do ebook foi reescrita para o
+  comprador ("O que eu recebo ao terminar?") — o conteúdo do FAQ continua
+  editável no painel
+- O aviso passou para o **painel do autor**, em destaque na tela do produto,
+  logo antes do formulário de publicação

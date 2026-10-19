@@ -202,8 +202,14 @@ export default async function AdminLandingPage() {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Aviso do rodapé</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rodapé da página pública (visível para os visitantes)
+            </label>
             <textarea name="footerNote" rows={2} defaultValue={config.footerNote} className="input-field" />
+            <p className="mt-1 text-xs text-gray-500">
+              Orientações internas de autoria não devem aparecer aqui: elas ficam apenas no
+              painel do autor.
+            </p>
           </div>
         </div>
 
