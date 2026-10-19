@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { getStoredSecret } from './secure-settings'
 
 const MP_API = 'https://api.mercadopago.com'
 
@@ -8,38 +9,78 @@ export interface MercadoPagoPreference {
   sandbox_init_point: string
 }
 
-export function getMercadoPagoToken(): string | null {
-  const token = process.env.MERCADOPAGO_ACCESS_TOKEN
-  return token && token.trim() ? token.trim() : null
+export interface MercadoPagoConfig {
+  accessToken: string | null
+  webhookSecret: string | null
+  /** De onde veio o token: painel do superadmin ou variável de ambiente */
+  source: 'admin' | 'env' | null
 }
 
-export function isMercadoPagoConfigured(): boolean {
-  return getMercadoPagoToken() !== null
+/**
+ * Credenciais do Mercado Pago.
+ * Prioridade: painel do superadmin (criptografado no banco) → variável de ambiente.
+ */
+export async function getMercadoPagoConfig(): Promise<MercadoPagoConfig> {
+  const fromAdmin = await getStoredSecret('mercadopago_access_token')
+  const fromEnv = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() || null
+
+  const webhookSecret =
+    (await getStoredSecret('mercadopago_webhook_secret')) ||
+    process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() ||
+    null
+
+  return {
+    accessToken: fromAdmin || fromEnv,
+    webhookSecret,
+    source: fromAdmin ? 'admin' : fromEnv ? 'env' : null,
+  }
 }
 
-/** Testa as credenciais do MercadoPago chamando /users/me */
+export async function isMercadoPagoConfigured(): Promise<boolean> {
+  const config = await getMercadoPagoConfig()
+  return Boolean(config.accessToken)
+}
+
+/** Testa as credenciais chamando /users/me no Mercado Pago. */
 export async function testMercadoPagoCredentials(): Promise<{ ok: boolean; message: string }> {
-  const token = getMercadoPagoToken()
-  if (!token) {
-    return { ok: false, message: 'MERCADOPAGO_ACCESS_TOKEN não configurada no ambiente.' }
+  const { accessToken, source } = await getMercadoPagoConfig()
+
+  if (!accessToken) {
+    return {
+      ok: false,
+      message: 'Nenhuma credencial configurada (nem no painel, nem no ambiente).',
+    }
   }
 
   try {
     const response = await fetch(`${MP_API}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
 
     if (!response.ok) {
-      return { ok: false, message: `Credencial recusada pelo MercadoPago (HTTP ${response.status}).` }
+      const body = await response.text()
+      return {
+        ok: false,
+        message: `Credencial recusada pelo Mercado Pago (HTTP ${response.status}). ${body
+          .slice(0, 120)
+          .replace(/\s+/g, ' ')}`,
+      }
     }
 
     const data = (await response.json()) as { first_name?: string; last_name?: string }
     const name = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
-    return { ok: true, message: `Credencial válida${name ? ` (${name})` : ''}.` }
+    const origin = source === 'admin' ? 'painel do superadmin' : 'variável de ambiente'
+
+    return {
+      ok: true,
+      message: `Credencial válida${name ? ` (${name})` : ''} — lida do ${origin}.`,
+    }
   } catch (error) {
     return {
       ok: false,
-      message: `Falha ao consultar o MercadoPago: ${error instanceof Error ? error.message : 'erro desconhecido'}`,
+      message: `Falha ao consultar o MercadoPago: ${
+        error instanceof Error ? error.message : 'erro desconhecido'
+      }`,
     }
   }
 }
@@ -57,15 +98,15 @@ interface CreatePreferenceInput {
 export async function createCheckoutPreference(
   input: CreatePreferenceInput
 ): Promise<MercadoPagoPreference> {
-  const token = getMercadoPagoToken()
-  if (!token) {
-    throw new Error('Pagamento indisponível: MERCADOPAGO_ACCESS_TOKEN não configurada.')
+  const { accessToken } = await getMercadoPagoConfig()
+  if (!accessToken) {
+    throw new Error('Pagamento indisponível: credencial do Mercado Pago não configurada.')
   }
 
   const response = await fetch(`${MP_API}/checkout/preferences`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -96,7 +137,9 @@ export async function createCheckoutPreference(
 
   if (!response.ok) {
     const body = await response.text()
-    throw new Error(`MercadoPago recusou a preferência (HTTP ${response.status}): ${body.slice(0, 200)}`)
+    throw new Error(
+      `MercadoPago recusou a preferência (HTTP ${response.status}): ${body.slice(0, 200)}`
+    )
   }
 
   const data = (await response.json()) as MercadoPagoPreference
@@ -113,12 +156,12 @@ export interface MercadoPagoPayment {
 }
 
 export async function getPayment(paymentId: string): Promise<MercadoPagoPayment | null> {
-  const token = getMercadoPagoToken()
-  if (!token) return null
+  const { accessToken } = await getMercadoPagoConfig()
+  if (!accessToken) return null
 
   try {
     const response = await fetch(`${MP_API}/v1/payments/${paymentId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
     if (!response.ok) return null
     return (await response.json()) as MercadoPagoPayment
@@ -128,7 +171,7 @@ export async function getPayment(paymentId: string): Promise<MercadoPagoPayment 
 }
 
 /**
- * Valida a assinatura do webhook do MercadoPago.
+ * Valida a assinatura do webhook do Mercado Pago.
  * Header x-signature: ts=<timestamp>,v1=<hmac>
  * Manifesto: id:{dataId};request-id:{x-request-id};ts:{ts};
  */
@@ -140,9 +183,9 @@ export function verifyWebhookSignature(options: {
 }): boolean {
   const { signatureHeader, requestId, dataId, secret } = options
 
-  // Sem secret configurado, não dá para validar: aceita para não perder pagamentos
-  // em ambientes de teste, mas o webhook continua exigindo o mesmo identificador
-  // do pedido (external_reference), o que evita processar eventos aleatórios.
+  // Sem secret configurado, não dá para validar: aceita para não perder
+  // pagamentos. Ainda assim o webhook só ativa o que o Mercado Pago confirma
+  // como aprovado (consulta na API).
   if (!secret) return true
   if (!signatureHeader || !requestId || !dataId) return false
 

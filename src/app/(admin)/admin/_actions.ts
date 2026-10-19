@@ -394,3 +394,26 @@ export async function testMercadoPago() {
   revalidatePath('/admin/payments')
   return result
 }
+
+/**
+ * Salva a credencial do Mercado Pago no painel (criptografada no banco).
+ * O valor não volta para o navegador: mostramos apenas os últimos dígitos.
+ */
+export async function saveMercadoPagoConfig(formData: FormData) {
+  await requireAdmin()
+  const { setStoredSecret } = await import('@/lib/secure-settings')
+
+  const accessToken = str(formData, 'accessToken').trim()
+  const webhookSecret = str(formData, 'webhookSecret').trim()
+  const clear = bool(formData, 'clear')
+
+  if (clear) {
+    await setStoredSecret('mercadopago_access_token', null)
+    await setStoredSecret('mercadopago_webhook_secret', null)
+  } else {
+    if (accessToken) await setStoredSecret('mercadopago_access_token', accessToken)
+    if (webhookSecret) await setStoredSecret('mercadopago_webhook_secret', webhookSecret)
+  }
+
+  revalidatePath('/admin/payments')
+}

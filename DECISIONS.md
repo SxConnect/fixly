@@ -228,3 +228,18 @@ sociais, formulário curto e design focado.
   (132 páginas no ebook de teste, ~240 KB)
 - No painel do autor: "PDF do ebook", "Flipbook em PDF" e "Continuar no flipbook"
   (o download não substitui a leitura online)
+
+## Credencial do Mercado Pago no painel (2026-10-19)
+
+- O superadmin agora cadastra a credencial **direto em `/admin/pagamentos`** —
+  não precisa mais mexer em variáveis de ambiente do Vercel
+- A credencial é gravada **criptografada** (AES-256-GCM) no banco
+  (`AppSetting`), com a chave derivada do `JWT_SECRET` do ambiente
+  (`src/lib/secure-settings.ts`)
+- O valor **nunca volta para o navegador**: o painel mostra apenas os últimos
+  4 dígitos e o campo fica vazio
+- Prioridade de leitura: painel do superadmin → variável de ambiente
+  (`MERCADOPAGO_ACCESS_TOKEN` / `MERCADOPAGO_WEBHOOK_SECRET`)
+- O webhook usa o mesmo segredo (painel ou ambiente) para validar a assinatura
+- Há opção de **remover** a credencial salva e o botão "Testar credencial agora"
+  valida o token direto com a API do Mercado Pago (`/users/me`)

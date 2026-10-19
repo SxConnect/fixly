@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPayment, verifyWebhookSignature } from '@/lib/mercadopago'
+import { getMercadoPagoConfig, getPayment, verifyWebhookSignature } from '@/lib/mercadopago'
 
 export async function POST(request: Request) {
   try {
@@ -9,11 +9,13 @@ export async function POST(request: Request) {
     const signature = request.headers.get('x-signature')
     const requestId = request.headers.get('x-request-id')
 
+    const { webhookSecret } = await getMercadoPagoConfig()
+
     const valid = verifyWebhookSignature({
       signatureHeader: signature,
       requestId,
       dataId,
-      secret: process.env.MERCADOPAGO_WEBHOOK_SECRET || null,
+      secret: webhookSecret,
     })
 
     if (!valid) {

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // Sem credencial o checkout não pode começar: nem cria pedido
-    if (!isMercadoPagoConfigured()) {
+    if (!(await isMercadoPagoConfigured())) {
       return NextResponse.json(
         { error: 'Pagamento indisponível no momento. Tente novamente mais tarde.' },
         { status: 503 }

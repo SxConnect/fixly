@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin'
-import { isMercadoPagoConfigured } from '@/lib/mercadopago'
-import { savePaymentMethod } from '../_actions'
+import { getMercadoPagoConfig } from '@/lib/mercadopago'
+import { savePaymentMethod, saveMercadoPagoConfig } from '../_actions'
 import { TestMercadoPagoButton } from './_test-mp'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ const providers = [
   {
     id: 'mercadopago',
     name: 'Mercado Pago',
-    hint: 'Cartão, Pix e boleto. Requer MERCADOPAGO_ACCESS_TOKEN no ambiente.',
+    hint: 'Cartão, Pix e boleto. Cole a credencial no campo acima.',
   },
   {
     id: 'kiwify',
@@ -28,8 +28,21 @@ export default async function AdminPaymentsPage() {
   await requireAdmin()
 
   const methods = await prisma.paymentMethod.findMany({ orderBy: { sortOrder: 'asc' } })
-  const mpConfigured = isMercadoPagoConfigured()
-  const webhookSecretConfigured = Boolean(process.env.MERCADOPAGO_WEBHOOK_SECRET)
+
+  const { accessToken, webhookSecret, source } = await getMercadoPagoConfig()
+  const { getStoredSecret } = await import('@/lib/secure-settings')
+  const storedToken = await getStoredSecret('mercadopago_access_token')
+  const storedSecret = await getStoredSecret('mercadopago_webhook_secret')
+
+  const mpConfigured = Boolean(accessToken)
+  const webhookSecretConfigured = Boolean(webhookSecret)
+  const mpSource = source
+  const mpTokenLast4 = storedToken ? storedToken.slice(-4) : null
+  const mpSecretLast4 = storedSecret ? storedSecret.slice(-4) : null
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seu-dominio.vercel.app').replace(
+    /\/$/,
+    ''
+  )
 
   return (
     <div className="space-y-6">
@@ -42,17 +55,83 @@ export default async function AdminPaymentsPage() {
 
       <div className="card">
         <h2 className="font-semibold text-gray-900 mb-2">Mercado Pago</h2>
+
         <p className="text-sm text-gray-600">
-          {mpConfigured
-            ? 'Credencial MERCADOPAGO_ACCESS_TOKEN encontrada no ambiente.'
-            : 'MERCADOPAGO_ACCESS_TOKEN não está configurada no ambiente do Vercel — o checkout ficará indisponível até você adicioná-la.'}
+          Cole aqui a credencial do Mercado Pago. O valor é gravado
+          <strong> criptografado</strong> no banco e nunca é exibido de novo —
+          só mostramos os últimos 4 dígitos.
         </p>
-        <p className="text-sm text-gray-600 mt-1">
-          {webhookSecretConfigured
-            ? 'Segredo do webhook configurado: as notificações são validadas por assinatura.'
-            : 'Sem MERCADOPAGO_WEBHOOK_SECRET as notificações são aceitas sem validar a assinatura (recomendado configurar).'}
-        </p>
-        <TestMercadoPagoButton />      </div>
+
+        <form action={saveMercadoPagoConfig} className="mt-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Access Token de produção
+            </label>
+            <input
+              type="password"
+              name="accessToken"
+              className="input-field font-mono !text-sm"
+              placeholder={
+                mpTokenLast4
+                  ? `já configurado (••••${mpTokenLast4}) — cole para trocar`
+                  : 'APP_USR-...'
+              }
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Em mercadopago.com.br → Developers → Credenciais → Access Token de produção.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Segredo do webhook
+            </label>
+            <input
+              type="password"
+              name="webhookSecret"
+              className="input-field font-mono !text-sm"
+              placeholder={
+                mpSecretLast4
+                  ? `já configurado (••••${mpSecretLast4}) — cole para trocar`
+                  : 'segredo gerado ao criar o webhook'
+              }
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Use a URL{' '}
+              <code className="bg-gray-100 px-1 rounded">
+                {appUrl}/api/webhooks/mercadopago
+              </code>{' '}
+              ao criar a notificação no painel do Mercado Pago.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <button type="submit" className="btn-primary !py-2 !px-4 !text-sm !min-h-0">
+              Salvar credencial
+            </button>
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input type="checkbox" name="clear" /> Remover a credencial salva
+            </label>
+          </div>
+        </form>
+
+        <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 space-y-1">
+          <p>
+            {mpConfigured
+              ? `Credencial ativa (fonte: ${mpSource === 'admin' ? 'painel do superadmin' : 'variável de ambiente'}).`
+              : 'Nenhuma credencial configurada — o checkout está desativado.'}
+          </p>
+          <p>
+            {webhookSecretConfigured
+              ? 'Segredo do webhook configurado: as notificações são validadas por assinatura.'
+              : 'Sem segredo do webhook as notificações são aceitas sem validar a assinatura (recomendado configurar).'}
+          </p>
+        </div>
+
+        <TestMercadoPagoButton />
+      </div>
 
       <div className="space-y-3">
         {providers.map((provider) => {
