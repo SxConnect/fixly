@@ -7,15 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
   passwordHash  String
   name          String
+  role          UserRole @default(USER)
+  status        String   @default("active") // active, suspended
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   profile       Profile?
+  subscription  Subscription?
+  orders        Order[]
 }
 
 model Profile {
@@ -247,4 +256,131 @@ model RateLimitEntry {
   createdAt     DateTime @default(now())
 
   @@index([identifier, action, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Superadmin: planos, assinaturas, pagamentos e configuração do site
+// ---------------------------------------------------------------------------
+
+model Plan {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  priceCents    Int      @default(0)
+  currency      String   @default("BRL")
+  features      Json?
+  maxProductsPerWeek   Int  @default(10)
+  maxIdeasPerWeek      Int  @default(100)
+  maxAdjustmentsPerWeek Int  @default(50)
+  maxProducts   Int?
+  isActive      Boolean  @default(true)
+  isDefault     Boolean  @default(false)
+  isHighlighted Boolean  @default(false)
+  displayOrder  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+  orders        Order[]
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  planId           String
+  status           String   @default("active") // active, canceled, expired
+  source           String   @default("admin") // admin, mercadopago
+  externalId       String?
+  startedAt        DateTime @default(now())
+  currentPeriodEnd DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  userId      String
+  planId      String?
+  amountCents Int      @default(0)
+  currency    String   @default("BRL")
+  provider    String   @default("mercadopago")
+  status      String   @default("pending") // pending, approved, rejected, refunded, chargeback
+  externalId  String?  @unique
+  payerEmail  String?
+  payload     Json?
+  createdAt   DateTime @default(now())
+  paidAt      DateTime?
+  updatedAt   DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+}
+
+model LandingConfig {
+  id                String   @id @default("singleton")
+  brandName         String   @default("Fixly")
+  heroTitle         String   @default("Do seu conhecimento ao seu próprio ebook")
+  heroHighlight     String   @default("próprio ebook")
+  heroSubtitle      String   @default("Transforme sua expertise em um ebook estruturado, publique a página de vendas e acompanhe o funil.")
+  heroImageUrl      String?
+  logoUrl           String?
+  ctaPrimaryText    String   @default("Criar conta grátis")
+  ctaPrimaryLink    String   @default("/register")
+  ctaSecondaryText  String   @default("Já tenho conta")
+  ctaSecondaryLink  String   @default("/login")
+  bannerText        String?
+  bannerEnabled     Boolean  @default(false)
+  featuresTitle     String   @default("O que você recebe")
+  featuresSubtitle  String   @default("Tudo o que falta entre ter a ideia e colocar a venda no ar.")
+  features          Json?
+  stepsTitle        String   @default("Como funciona")
+  steps             Json?
+  faqTitle          String   @default("Perguntas frequentes")
+  faq               Json?
+  plansTitle        String   @default("Plano gratuito, limites claros")
+  plansSubtitle     String   @default("Você acompanha o consumo no painel. Nada de letra miúda.")
+  footerNote        String   @default("A IA escreve um rascunho. Você lê, corrige e responde pelo que publica. O Fixly não garante vendas nem renda.")
+  updatedAt         DateTime @updatedAt
+}
+
+model MenuItem {
+  id        String   @id @default(cuid())
+  label     String
+  href      String
+  location  String   @default("header") // header, footer
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ImageAsset {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  kind      String   @default("logo") // logo, hero, og, promo
+  alt       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id        String   @id @default(cuid())
+  provider  String   @unique // mercadopago, kiwify, hotmart
+  name      String
+  isActive  Boolean  @default(false)
+  config    Json?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json?
+  updatedAt DateTime @updatedAt
 }
