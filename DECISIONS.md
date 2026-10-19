@@ -51,3 +51,22 @@
   (`generateEbook(...).catch(...)`), sem necessidade de cron
 - Se precisar de agendamento frequente no futuro: upgrade para Pro ou usar
   um agendador externo chamando um endpoint protegido
+
+## Neon + Vercel (2026-10-19)
+
+- A organização Neon do time (`Vercel: sxconnect's projects`, `managed_by: vercel`)
+  foi criada **automaticamente** pelo Vercel em 18/10. Org gerenciada pelo Vercel
+  **bloqueia criação de projetos** pela API do Neon:
+  `action restricted; reason:"organization is managed by Vercel"`
+- Solução: banco provisionado pelo **Marketplace do Vercel** (integração Neon),
+  que cria o projeto no Neon e injeta `DATABASE_URL` (pooled) e demais variáveis
+  automaticamente no projeto Vercel:
+  `vercel integration add neon --name fixly-db --metadata region=gru1 -e production -e preview`
+- Região `gru1` (São Paulo) — o único brasileiro disponível no marketplace
+- A string de conexão é `ep-green-sound-b6x0hppc-pooler.c-2.sa-east-1.aws.neon.tech`
+- **Endpoint da API do Neon mudou**: `api.neon.tech` não resolve mais; usar
+  `https://console.neon.tech/api/v2`
+- `vercel integration` (CLI) permite provisionar recursos de marketplace sem o
+  dashboard; o token do CLI fica em `~/.local/share/com.vercel.cli/auth.json`
+- Deployment Protection do projeto foi **desativada** (a landing page é pública)
+- `NEXT_PUBLIC_APP_URL` = `https://fixly-pied.vercel.app`

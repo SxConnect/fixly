@@ -41,3 +41,8 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+.env*
+
+# OpenCode harness artifacts
+.agents/
+skills-lock.json
