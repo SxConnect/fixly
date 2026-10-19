@@ -57,6 +57,7 @@ model Product {
   purchaseLink  String?
   slug          String?  @unique
   coverChoice   String?
+  coverConcept  Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

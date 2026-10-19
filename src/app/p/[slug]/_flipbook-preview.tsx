@@ -3,15 +3,23 @@
 import { useState } from 'react'
 import { Flipbook } from '@/components/flipbook'
 import type { FlipbookPage } from '@/lib/ebook-pages'
+import type { CoverConcept } from '@/lib/cover'
 
 interface FlipbookPreviewProps {
   pages: FlipbookPage[]
   title: string
   author: string
   brandColor?: string
+  coverConcept?: CoverConcept | null
 }
 
-export function FlipbookPreview({ pages, title, author, brandColor }: FlipbookPreviewProps) {
+export function FlipbookPreview({
+  pages,
+  title,
+  author,
+  brandColor,
+  coverConcept,
+}: FlipbookPreviewProps) {
   const [open, setOpen] = useState(false)
 
   if (pages.length <= 2) return null
@@ -32,6 +40,7 @@ export function FlipbookPreview({ pages, title, author, brandColor }: FlipbookPr
           title={title}
           author={author}
           brandColor={brandColor}
+          coverConcept={coverConcept}
           onClose={() => setOpen(false)}
         />
       )}

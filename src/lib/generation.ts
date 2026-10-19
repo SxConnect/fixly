@@ -1,6 +1,14 @@
 import { prisma } from './prisma'
 import { generateText, generateJSON } from './ai'
 import { filterWithAI } from './promise-filter'
+import {
+  buildFallbackConcept,
+  COVER_MOTIFS,
+  COVER_PALETTES,
+  type CoverConcept,
+  type CoverPaletteName,
+  type CoverStyle,
+} from './cover'
 
 const CHAPTER_REVIEW_THRESHOLD = parseFloat(process.env.CHAPTER_REVIEW_THRESHOLD || '7')
 const MAX_REGENERATION_ATTEMPTS = parseInt(process.env.MAX_REGENERATION_ATTEMPTS || '2')
@@ -144,8 +152,7 @@ Responda apenas com JSON: { "score": number, "feedback": string }`,
   }
 }
 
-export async function generateIdeas(niche: string, subNiche: string | null) {
-  const result = await generateJSON<{
+export async function generateIdeas(niche: string, subNiche: string | null) {  const result = await generateJSON<{
     ideas: Array<{ title: string; promise: string; audience: string }>
   }>([
     {
@@ -275,4 +282,83 @@ Responda apenas com JSON.`,
   }
 
   return scripts
+}
+
+/**
+ * Cria o conceito de capa do ebook: paleta, ilustração (motivo), título de
+ * capa e texto de apoio — sempre coerentes com o título do material.
+ */
+export async function generateCoverConcept(
+  product: { title: string; promise: string; niche: string; audience: string | null },
+  variant: number,
+  avoid?: { palette: string; motif: string }
+): Promise<CoverConcept> {
+  const fallback = buildFallbackConcept({
+    title: product.title,
+    promise: product.promise,
+    variant,
+  })
+
+  try {
+    const result = await generateJSON<{
+      subtitle: string
+      badge: string
+      palette: string
+      motif: string
+      style: string
+    }>([
+      {
+        role: 'system',
+        content: `Você é um designer de capas de ebook. Crie o conceito de capa para o ebook "${product.title}".
+
+Contexto:
+- Nicho: ${product.niche}
+- Promessa: ${product.promise}
+- Público: ${product.audience || 'leitores interessados no tema'}
+
+Regras:
+- "motif": escolha UM emoji da lista que represente o tema do ebook:
+  ${COVER_MOTIFS.join(' ')}
+- "palette": escolha UMA paleta: ${Object.keys(COVER_PALETTES).join(', ')}
+- "style": soft, bold ou minimal
+- "badge": 2 a 3 palavras em CAIXA ALTA que anunciem o ganho prático (ex.: "GUIA PRÁTICO", "PASSO A PASSO", "DO ZERO AO PRIMEIRO EBOOK")
+- "subtitle": uma frase curta (até 90 caracteres) que combine com o título
+${
+  avoid
+    ? `- IMPORTANTE: esta é a ${variant}ª opção da capa. Escolha uma paleta e uma ilustração DIFERENTES da anterior (paleta anterior: ${avoid.palette}, ilustração anterior: ${avoid.motif})`
+    : ''
+}
+
+Responda apenas com JSON: { "subtitle": "...", "badge": "...", "palette": "...", "motif": "...", "style": "..." }`,
+      },
+      {
+        role: 'user',
+        content: `Crie a capa do ebook "${product.title}"`,
+      },
+    ])
+
+    const palette = (Object.keys(COVER_PALETTES) as CoverPaletteName[]).includes(
+      result.palette as CoverPaletteName
+    )
+      ? (result.palette as CoverPaletteName)
+      : fallback.palette
+
+    const motif = COVER_MOTIFS.includes(result.motif) ? result.motif : fallback.motif
+
+    const style: CoverStyle = ['soft', 'bold', 'minimal'].includes(result.style)
+      ? (result.style as CoverStyle)
+      : fallback.style
+
+    return {
+      title: product.title,
+      subtitle: (result.subtitle || fallback.subtitle).slice(0, 110),
+      badge: (result.badge || fallback.badge).toUpperCase().slice(0, 28),
+      palette,
+      motif,
+      style,
+    }
+  } catch (error) {
+    console.warn('Falha ao gerar conceito de capa, usando padrão:', error)
+    return fallback
+  }
 }

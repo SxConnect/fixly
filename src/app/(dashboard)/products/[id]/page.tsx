@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { GenerationMotion } from '@/components/generation-motion'
 import { Flipbook } from '@/components/flipbook'
+import { CoverSection } from './_cover-section'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
+import type { StoredCover } from '@/lib/cover'
 
 interface Product {
   id: string
@@ -18,6 +20,7 @@ interface Product {
   purchaseLink: string | null
   slug: string | null
   coverChoice: string | null
+  coverConcept?: StoredCover | null
   profile?: { name: string } | null
   chapters: Array<{
     id: string
@@ -299,6 +302,18 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
+        <CoverSection
+          productId={product.id}
+          title={product.title}
+          author={product.profile?.name || 'Você'}
+          stored={product.coverConcept ?? null}
+          onChange={(stored) =>
+            setProduct((current) => (current ? { ...current, coverConcept: stored } : current))
+          }
+        />
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
         <div className="card bg-gradient-to-br from-brand-50 via-white to-white">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
@@ -388,6 +403,9 @@ export default function ProductDetailPage({
           pages={flipbookPages}
           title={product.title}
           author={product.profile?.name || 'Você'}
+          coverConcept={
+            product.coverConcept?.variants?.[product.coverConcept.selected] ?? null
+          }
           onClose={() => setShowFlipbook(false)}
         />
       )}

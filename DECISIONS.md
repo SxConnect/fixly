@@ -143,3 +143,23 @@
   rolável e mostra o aviso "↓ role para ver o resto" — nada fica escondido
 - Paginação mais densa: ~620 caracteres por página (era 720) e parágrafos com
   quebras de linha no meio voltam a ser um parágrafo único
+
+## Capa do ebook + nova diagramação do flipbook (2026-10-19)
+
+- **Capa gerada a partir do título** (`src/lib/cover.ts`): a IA escolhe paleta,
+  ilustração (motivo), selo e subtítulo coerentes com o título do ebook
+  - Ex.: "Gatos e Brincadeiras..." → ilustração 🐱, selo "ATIVIDADES DIVERTIDAS",
+    subtítulo "Atividades práticas para enriquecer o dia a dia do seu gato"
+  - Duas opções são geradas por padrão; a 2ª é instruída a usar paleta e
+    ilustração diferentes da 1ª
+  - A capa é **SVG vetorial** (nítida em qualquer tamanho, poucos KB, Baixar SVG)
+  - Sem API de imagem: o desenho é composto por gradiente + motivo + tipografia
+  - Queda: conceito determinístico por hash do título (funciona offline)
+- Novo campo `Product.coverConcept` (JSONB) guarda as variantes + a escolhida
+- `POST /api/products/[id]/cover` → `generate` (2 variantes) ou `select`
+- **Diagramação do flipbook** refeita:
+  - capa real do ebook na primeira página, com página de abertura (contracapa)
+  - **abertura de capítulo** com número gigante, título em serif e régua colorida
+  - páginas de continuação com cabeçalho corrido ("Capítulo N · título")
+  - papel quente, tipografia serifada nos títulos, entrelinha 1.75
+  - barra de progresso do livro no topo e controles com a cor da marca

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
+import { resolveCover } from '@/lib/cover'
+import { EbookCover } from '@/components/ebook-cover'
 import { FlipbookPreview } from './_flipbook-preview'
 import { BuyButton } from './_buy-button'
 
@@ -31,6 +33,11 @@ export default async function SalesPage({ params }: SalesPageProps) {
 
   const { product } = salesPage
 
+  const cover = resolveCover({
+    coverChoice: product.coverChoice,
+    coverConcept: product.coverConcept,
+  })
+
   const flipbookPages = buildFlipbookPages({
     title: product.title,
     author: product.profile.name,
@@ -56,14 +63,22 @@ export default async function SalesPage({ params }: SalesPageProps) {
       {/* Hero */}
       <section className="bg-gradient-to-b from-brand-50 to-white py-12 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          {product.coverChoice && (
+          {cover && (
             <div className="mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={product.coverChoice}
-                alt={product.title}
-                className="w-48 h-64 object-cover rounded-2xl shadow-lg mx-auto"
-              />
+              {cover.kind === 'image' ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={cover.url}
+                  alt={product.title}
+                  className="w-48 h-64 object-cover rounded-2xl shadow-lg mx-auto"
+                />
+              ) : (
+                <EbookCover
+                  concept={cover.concept}
+                  author={product.profile.name}
+                  className="w-48 h-64 rounded-2xl overflow-hidden shadow-xl mx-auto"
+                />
+              )}
             </div>
           )}
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
@@ -115,6 +130,7 @@ export default async function SalesPage({ params }: SalesPageProps) {
               title={product.title}
               author={product.profile.name}
               brandColor={product.profile.brandColor}
+              coverConcept={cover?.kind === 'concept' ? cover.concept : null}
             />
           </div>
         </div>

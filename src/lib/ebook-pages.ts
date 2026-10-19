@@ -7,6 +7,7 @@ export interface FlipbookPage {
   body: string[]
   chapterOrder?: number
   chapterTitle?: string
+  chapterStart?: boolean
   pageNumber: number
 }
 
@@ -140,6 +141,7 @@ export function buildFlipbookPages(input: BuildFlipbookInput): FlipbookPage[] {
         body,
         chapterOrder: chapter.order,
         chapterTitle: chapter.title,
+        chapterStart: index === 0,
         pageNumber: pageNumber++,
       })
     })
