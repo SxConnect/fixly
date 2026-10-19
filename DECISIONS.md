@@ -349,3 +349,16 @@ sociais, formulário curto e design focado.
   5. Campo livre para o autor escrever o próprio texto
   6. Textos e artes salvos no painel (`PromoAsset` tipo `post`) com copiar,
      baixar arte e remover
+
+## Painel de Vendas + relatório de receita (2026-10-19)
+
+- `/sales` virou um **Server Component** (sem Ida e volta de API) com:
+  - **Relatório**: receita total, receita no mês, ticket médio e reembolsos
+  - **Gráfico de receita por mês** (6 meses, barras em CSS puro — sem lib de chart)
+  - **Ebooks que mais vendem** (ordenado por receita, com link para o produto)
+  - **Lista de vendas**: comprador, e-mail, ebook, data, plataforma, valor, status e o
+    uso do link de download (usados/limite, expirado, revogado)
+  - Ações por venda: **copiar link de download** e **reenviar o e-mail** com o link
+    (Server Action `resendDownloadLink`, reenvia o mesmo link)
+- Filtro por ebook: `/sales?product=<id>` (link "Ver vendas deste ebook" na tela do
+  produto)

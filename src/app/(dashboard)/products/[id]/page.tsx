@@ -486,6 +486,15 @@ export default function ProductDetailPage({
             </div>
           )}
 
+          <div className="flex justify-end">
+            <Link
+              href={`/sales?product=${product.id}`}
+              className="text-sm text-gray-500 hover:text-brand-600"
+            >
+              Ver vendas deste ebook
+            </Link>
+          </div>
+
           {publishedSlug && (
             <div className="bg-brand-50 text-brand-700 px-4 py-3 rounded-xl text-sm">
               Página publicada!{' '}
