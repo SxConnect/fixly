@@ -319,6 +319,39 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
+        <div className="card">
+          <h2 className="font-semibold text-gray-900">Baixar e ler</h2>
+          <p className="text-sm text-gray-600 mt-0.5">
+            Baixe o ebook em PDF ou continue lendo no flipbook, com capa e virada de página.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <a
+              href={`/api/products/${product.id}/pdf?format=ebook`}
+              className="btn-secondary !py-3 text-center text-sm"
+              download
+            >
+              PDF do ebook
+            </a>
+            <a
+              href={`/api/products/${product.id}/pdf?format=flipbook`}
+              className="btn-secondary !py-3 text-center text-sm"
+              download
+            >
+              Flipbook em PDF
+            </a>
+            <button
+              onClick={() => setShowFlipbook(true)}
+              className="btn-primary !py-3 text-sm"
+              type="button"
+            >
+              Continuar no flipbook
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
         <CoverSection
           productId={product.id}
           title={product.title}

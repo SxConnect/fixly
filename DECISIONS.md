@@ -215,3 +215,16 @@ sociais, formulário curto e design focado.
   (o webhook pode demorar) e mostra "Pagamento aprovado! Ativando seu plano…"
 - Sem `MERCADOPAGO_ACCESS_TOKEN` o checkout responde **503** sem criar pedido;
   o status da credencial e do segredo do webhook aparece em `/admin/pagamentos`
+
+## Download do ebook em PDF + flipbook em PDF (2026-10-19)
+
+- `GET /api/products/[id]/pdf?format=ebook|flipbook` gera o PDF do ebook do autor
+  (requer login e propriedade)
+- **format=ebook**: capa com a foto real (se houver) + selo + título, sumário,
+  um capítulo por página com títulos/listas/citações formatados e página do autor
+  (39 páginas no ebook de teste, ~170 KB)
+- **format=flipbook**: uma página do PDF por página do flipbook, com o mesmo
+  cabeçalho corrido, papel quente e rodapé com número — mantém a leitura
+  (132 páginas no ebook de teste, ~240 KB)
+- No painel do autor: "PDF do ebook", "Flipbook em PDF" e "Continuar no flipbook"
+  (o download não substitui a leitura online)
