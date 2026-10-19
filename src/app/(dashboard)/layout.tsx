@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { AdminLink } from './_admin-link'
 
 const navItems = [
   { href: '/products', label: 'Produtos', icon: '📚' },
@@ -33,6 +34,7 @@ export default function DashboardLayout({
             />
           </Link>
           <nav className="flex gap-1">
+            <AdminLink />
             {navItems.map((item) => (
               <Link
                 key={item.href}

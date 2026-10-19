@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { getPlanLimitsForUser } from './plans'
 
 const WEEKLY_PRODUCT_LIMIT = parseInt(process.env.WEEKLY_PRODUCT_LIMIT || '10')
 const WEEKLY_IDEAS_LIMIT = parseInt(process.env.WEEKLY_IDEAS_LIMIT || '100')
@@ -10,6 +11,25 @@ export interface UsageStatus {
   adjustments: { used: number; limit: number; remaining: number }
 }
 
+/** Limites vigentes do usuário: assinatura ativa ou plano gratuito. */
+async function resolveLimits(profileId: string) {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { userId: true },
+    })
+    if (profile) return await getPlanLimitsForUser(profile.userId)
+  } catch (error) {
+    console.error('Falha ao resolver limites do perfil:', error)
+  }
+
+  return {
+    products: WEEKLY_PRODUCT_LIMIT,
+    ideas: WEEKLY_IDEAS_LIMIT,
+    adjustments: WEEKLY_ADJUSTMENTS_LIMIT,
+  }
+}
+
 function getWeekStart(): Date {
   const now = new Date()
   const day = now.getDay()
@@ -19,6 +39,7 @@ function getWeekStart(): Date {
 
 export async function getUsageStatus(profileId: string): Promise<UsageStatus> {
   const weekStart = getWeekStart()
+  const limits = await resolveLimits(profileId)
 
   let usage = await prisma.usageLimit.findUnique({
     where: { profileId },
@@ -47,18 +68,18 @@ export async function getUsageStatus(profileId: string): Promise<UsageStatus> {
   return {
     products: {
       used: usage.productCount,
-      limit: WEEKLY_PRODUCT_LIMIT,
-      remaining: Math.max(0, WEEKLY_PRODUCT_LIMIT - usage.productCount),
+      limit: limits.products,
+      remaining: Math.max(0, limits.products - usage.productCount),
     },
     ideas: {
       used: usage.ideasCount,
-      limit: WEEKLY_IDEAS_LIMIT,
-      remaining: Math.max(0, WEEKLY_IDEAS_LIMIT - usage.ideasCount),
+      limit: limits.ideas,
+      remaining: Math.max(0, limits.ideas - usage.ideasCount),
     },
     adjustments: {
       used: usage.adjustmentsCount,
-      limit: WEEKLY_ADJUSTMENTS_LIMIT,
-      remaining: Math.max(0, WEEKLY_ADJUSTMENTS_LIMIT - usage.adjustmentsCount),
+      limit: limits.adjustments,
+      remaining: Math.max(0, limits.adjustments - usage.adjustmentsCount),
     },
   }
 }

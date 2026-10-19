@@ -4,6 +4,7 @@ import { registerSchema } from '@/lib/validation'
 import { createToken, setSessionCookie } from '@/lib/auth'
 import { sendWelcomeEmail } from '@/lib/email'
 import { hashPassword } from '@/lib/password'
+import { isAdminEmail } from '@/lib/admin'
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         name,
+        role: isAdminEmail(email) ? 'ADMIN' : 'USER',
       },
     })
 
