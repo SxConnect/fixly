@@ -286,6 +286,65 @@ Responda apenas com JSON.`,
 }
 
 /**
+ * Gera UM roteiro de vídeo por formato. Usado para completar os formatos que a
+ * IA deixa vazios na chamada coletiva.
+ */
+export async function generateVideoScriptForFormat(
+  product: { title: string; promise: string; niche: string },
+  format: string
+): Promise<{ title: string; script: string; flowPrompts: string }> {
+  const formatNames: Record<string, string> = {
+    reel: 'Reel/Short (ate 30s, corte rapido, gancho nos primeiros 2s)',
+    story: 'Story (9:16, 3 quadros)',
+    tiktok: 'TikTok (30 a 60s, gancho forte)',
+    carousel: 'Carrossel (8 a 10 slides, cada slide com texto curto e ideia visual)',
+    talking_head: 'Talking head (voce falando a camera, 45 a 60s)',
+  }
+
+  try {
+    const result = await generateJSON<{ title: string; script: string; flowPrompts: string }>([
+      {
+        role: 'system',
+        content: `Voce cria roteiros de video curto para divulgar ebooks.
+
+Formato: ${formatNames[format] || format}
+Ebook: ${product.title}
+Nicho: ${product.niche}
+Promessa: ${product.promise}
+
+Responda apenas com JSON:
+{
+  "title": "titulo chamativo do video",
+  "script": "roteiro completo em cenas (CENA 1, FALA: ..., TELA: ...) ou slides, conforme o formato",
+  "flowPrompts": "prompts para gerar as cenas no Google Flow, um por linha"
+}
+
+Sem prometer renda, resultado garantido ou milagre.`,
+      },
+      {
+        role: 'user',
+        content: `Crie o roteiro ${format} do ebook "${product.title}"`,
+      },
+    ])
+
+    return {
+      title: String(result.title || '').slice(0, 140),
+      script:
+        typeof result.script === 'string'
+          ? result.script
+          : JSON.stringify(result.script ?? '', null, 2),
+      flowPrompts:
+        typeof result.flowPrompts === 'string'
+          ? result.flowPrompts
+          : JSON.stringify(result.flowPrompts ?? '', null, 2),
+    }
+  } catch (error) {
+    console.warn(`Falha ao gerar o roteiro ${format}:`, error)
+    return { title: '', script: '', flowPrompts: '' }
+  }
+}
+
+/**
  * Gera textos de venda para divulgar o ebook.
  *
  * `previous` alimenta o prompt com os textos já escritos para a IA não
@@ -356,6 +415,57 @@ Público: ${product.audience || 'pessoas interessadas no tema'}`,
   } catch (error) {
     console.warn('Falha ao gerar copy de venda:', error)
     return fallback.slice(0, count)
+  }
+}
+
+/**
+ * Legenda para Instagram com hashtags relevantes ao nicho do ebook.
+ */
+export async function generateInstagramCaption(
+  product: { title: string; promise: string; niche: string; audience: string | null },
+  link: string
+): Promise<{ caption: string; hashtags: string[] }> {
+  const fallback = {
+    caption: `📚 ${product.title}\n\n${product.promise}\n\nBaixe agora 👇\n${link}`,
+    hashtags: ['ebook', 'produtodigital', 'ebookdigital', 'marketingdigital', 'conhecimento'],
+  }
+
+  try {
+    const result = await generateJSON<{ caption: string; hashtags: string[] }>([
+      {
+        role: 'system',
+        content: `Você escreve legendas para Instagram de ebook.
+
+Regras:
+- Primeira linha é uma GANCHO curta (até 90 caracteres) que faça a pessoa parar
+- 2 a 4 linhas de valor: o que a pessoa vai aprender/levar
+- Chamada clara no final com o link
+- 6 a 10 hashtags relevantes, SEM # e em minúsculas
+- SEM prometer renda, resultado garantido ou milagre
+- Tom próximo, como uma pessoa real
+
+Responda apenas com JSON: { "caption": "...", "hashtags": ["...", "..."] }`,
+      },
+      {
+        role: 'user',
+        content: `Ebook: ${product.title}
+Promessa: ${product.promise}
+Nicho: ${product.niche}
+Público: ${product.audience || 'pessoas interessadas no tema'}
+Link: ${link}`,
+      },
+    ])
+
+    const caption = String(result.caption || '').trim()
+    const hashtags = (result.hashtags || [])
+      .map((tag) => String(tag).replace(/^#/, '').trim().toLowerCase())
+      .filter(Boolean)
+
+    if (!caption) return fallback
+    return { caption, hashtags: hashtags.length ? hashtags : fallback.hashtags }
+  } catch (error) {
+    console.warn('Falha ao gerar legenda do Instagram:', error)
+    return fallback
   }
 }
 

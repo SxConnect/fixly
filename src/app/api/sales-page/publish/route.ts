@@ -33,6 +33,9 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { productId, price, purchaseLink } = salesPageSchema.parse(body)
+    const salesMode = ['external', 'platform', 'both'].includes(body?.salesMode)
+      ? body.salesMode
+      : 'external'
 
     const product = await prisma.product.findFirst({
       where: { id: productId, profileId: profile.id },
@@ -79,6 +82,7 @@ export async function POST(request: Request) {
       data: {
         price,
         purchaseLink,
+        salesMode,
         slug: salesPage.slug,
         status: 'published',
       },

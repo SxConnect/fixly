@@ -44,6 +44,7 @@ export default async function SalesPage({
   })
 
   const mpEnabled = await isMercadoPagoConfigured()
+  const mode = product.salesMode || 'external'
 
   const flipbookPages = buildFlipbookPages({
     title: product.title,
@@ -91,7 +92,7 @@ export default async function SalesPage({
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
           <p className="text-lg text-gray-600 mb-8">{product.promise}</p>
 
-          {product.price ? (
+          {product.price && (mode === 'platform' || mode === 'both') ? (
             <div className="max-w-md mx-auto text-left">
               <CheckoutBox
                 productId={product.id}
@@ -100,11 +101,11 @@ export default async function SalesPage({
                 slug={product.slug || salesPage.slug}
                 salesPageId={salesPage.id}
                 mpEnabled={mpEnabled}
-                externalLink={product.purchaseLink}
+                externalLink={mode === 'both' ? product.purchaseLink : null}
                 purchased={comprado}
               />
             </div>
-          ) : product.purchaseLink ? (
+          ) : mode !== 'platform' && product.purchaseLink ? (
             <BuyButton
               href={product.purchaseLink}
               price={product.price || 0}

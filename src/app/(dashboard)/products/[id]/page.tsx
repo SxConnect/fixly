@@ -7,6 +7,8 @@ import { GenerationMotion } from '@/components/generation-motion'
 import { Flipbook } from '@/components/flipbook'
 import { CoverSection } from './_cover-section'
 import { Promotion } from './_promotion'
+import { VideoScripts } from './_video-scripts'
+import { InstagramCard } from './_instagram'
 import { EbookPanel } from './_ebook-panel'
 import { buildFlipbookPages } from '@/lib/ebook-pages'
 import type { StoredCover } from '@/lib/cover'
@@ -59,6 +61,7 @@ export default function ProductDetailPage({
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null)
   const [price, setPrice] = useState('')
   const [purchaseLink, setPurchaseLink] = useState('')
+  const [salesMode, setSalesMode] = useState<'external' | 'platform' | 'both'>('external')
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
@@ -180,8 +183,12 @@ export default function ProductDetailPage({
     }
 
     const link = purchaseLink.trim()
-    if (!/^https?:\/\/.+/i.test(link)) {
-      setPublishError('Informe um link de compra válido começando com https://')
+    const needsLink = salesMode === 'external' || salesMode === 'both'
+
+    if (needsLink && !/^https?:\/\/.+/i.test(link)) {
+      setPublishError(
+        'Informe o link da sua plataforma de vendas (Kiwify, Hotmart, Stripe…) começando com https://'
+      )
       setPublishing(false)
       return
     }
@@ -190,7 +197,12 @@ export default function ProductDetailPage({
       const response = await fetch('/api/sales-page/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, price: parsedPrice, purchaseLink: link }),
+        body: JSON.stringify({
+          productId: product.id,
+          price: parsedPrice,
+          purchaseLink: needsLink ? link : '',
+          salesMode,
+        }),
       })
 
       const data = await response.json()
@@ -416,6 +428,38 @@ export default function ProductDetailPage({
       )}
 
       {(product.status === 'ready' || product.status === 'published') && (
+        <InstagramCard
+          productId={product.id}
+          title={product.title}
+          promise={product.promise}
+          price={product.price}
+          slug={product.slug}
+          coverConcept={
+            product.coverConcept?.variants?.[product.coverConcept.selected] ?? null
+          }
+          siteUrl={
+            process.env.NEXT_PUBLIC_APP_URL || 'https://fixly-psi-three.vercel.app'
+          }
+        />
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
+        <VideoScripts
+          productId={product.id}
+          title={product.title}
+          promise={product.promise}
+          price={product.price}
+          slug={product.slug}
+          coverConcept={
+            product.coverConcept?.variants?.[product.coverConcept.selected] ?? null
+          }
+          siteUrl={
+            process.env.NEXT_PUBLIC_APP_URL || 'https://fixly-psi-three.vercel.app'
+          }
+        />
+      )}
+
+      {(product.status === 'ready' || product.status === 'published') && (
         <Promotion
           productId={product.id}
           title={product.title}
@@ -454,6 +498,31 @@ export default function ProductDetailPage({
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Onde a venda acontece?
+            </label>
+            <select
+              value={salesMode}
+              onChange={(event) =>
+                setSalesMode(event.target.value as 'external' | 'platform' | 'both')
+              }
+              className="input-field"
+            >
+              <option value="external">Na minha plataforma (Kiwify, Hotmart, Stripe…)</option>
+              <option value="platform">Aqui no Fixly (Mercado Pago)</option>
+              <option value="both">Nos dois lugares</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {salesMode === 'external' &&
+                'O comprador vai para o link que você informar e a venda é registrada aqui pelo webhook.'}
+              {salesMode === 'platform' &&
+                'O comprador paga direto na sua página de vendas, via Mercado Pago. O download chega por e-mail.'}
+              {salesMode === 'both' &&
+                'O comprador pode pagar na sua página (Mercado Pago) ou seguir para o link da sua plataforma.'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Preço (R$)
             </label>
             <input
@@ -466,19 +535,22 @@ export default function ProductDetailPage({
               onChange={(event) => setPrice(event.target.value)}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Link de compra (Kiwify, Hotmart, etc.)
-            </label>
-            <input
-              type="url"
-              id="purchaseLink"
-              className="input-field"
-              placeholder="https://..."
-              value={purchaseLink}
-              onChange={(event) => setPurchaseLink(event.target.value)}
-            />
-          </div>
+
+          {(salesMode === 'external' || salesMode === 'both') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Link da sua plataforma de vendas
+              </label>
+              <input
+                type="url"
+                id="purchaseLink"
+                className="input-field"
+                placeholder="https://pay.kiwify.com.br/..."
+                value={purchaseLink}
+                onChange={(event) => setPurchaseLink(event.target.value)}
+              />
+            </div>
+          )}
 
           {publishError && (
             <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">

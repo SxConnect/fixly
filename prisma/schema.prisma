@@ -55,6 +55,7 @@ model Product {
   status        String   @default("draft") // draft, generating, ready, published
   price         Float?
   purchaseLink  String?
+  salesMode     String   @default("external") // external, platform, both
   slug          String?  @unique
   coverChoice   String?
   coverConcept  Json?
@@ -70,6 +71,7 @@ model Product {
   sales         Sales[]
   promoAssets   PromoAsset[]
   videoScripts  VideoScript[]
+  scheduledPosts ScheduledPost[]
 }
 
 model ProductIdea {
@@ -239,15 +241,18 @@ model InstagramAccount {
 }
 
 model ScheduledPost {
-  id            String   @id @default(cuid())
-  accountId     String
-  content       String   @db.Text
+  id            String    @id @default(cuid())
+  accountId     String?
+  productId     String?
+  content       String    @db.Text
   imageUrl      String?
   scheduledFor  DateTime
-  status        String   @default("scheduled") // scheduled, published, failed
-  createdAt     DateTime @default(now())
+  status        String    @default("scheduled") // scheduled, published, failed
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
 
-  account       InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account       InstagramAccount? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  product       Product?           @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model RateLimitEntry {

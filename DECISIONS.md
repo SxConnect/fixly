@@ -362,3 +362,24 @@ sociais, formulário curto e design focado.
     (Server Action `resendDownloadLink`, reenvia o mesmo link)
 - Filtro por ebook: `/sales?product=<id>` (link "Ver vendas deste ebook" na tela do
   produto)
+
+## Roteiros de vídeo + Instagram + modo de venda (2026-10-19)
+
+- **Modo de venda** (`Product.salesMode`): o autor escolhe onde a venda acontece —
+  `external` (Kiwify/Hotmart/Stripe), `platform` (Mercado Pago na página do
+  Fixly) ou `both`. A página pública respeita a escolha
+- **Roteiros de vídeo** (`VideoScript`): 5 formatos (reel, story, tiktok,
+  carousel, talking_head) com roteiro em cenas (`CENA 1`, `FALA:`, `TELA:`) e
+  prompts para o Google Flow
+  - A IA muda a estrutura por formato → a rota normaliza tudo para texto e
+    **completa os formatos que voltaram vazios** com uma chamada direcionada
+  - Card no painel: título/roteiro/prompts **editáveis**, copiar, salvar e
+    "gerar capa do vídeo" (9:16)
+- **Instagram**:
+  - Legenda com **gancho + hashtags** geradas pela IA (editável, com copiar)
+  - Artes nos formatos do Instagram: feed 1080×1080 e reels 1080×1920
+  - **Agendamento** de posts (`ScheduledPost`, com `productId` opcional) — funciona
+    mesmo sem conta conectada
+  - Conexão opcional com o Instagram (Graph API, token criptografado) para
+    **publicar direto**; a imagem precisa ser pública — a arte salva no Blob serve
+- O app **não gera o vídeo**: o autor gera no Google Flow e publica
