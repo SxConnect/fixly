@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -40,6 +41,14 @@ export default function LoginPage() {
     <main className="min-h-screen flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
+          <Image
+            src="/logo-flixly-wordmark.png"
+            alt="Fixly"
+            width={1398}
+            height={539}
+            priority
+            className="w-[200px] h-auto mx-auto mb-6"
+          />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar</h1>
           <p className="text-gray-600">Acesse sua conta Fixly</p>
         </div>

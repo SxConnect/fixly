@@ -1,6 +1,14 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resendClient: Resend | null = null
+
+// Lazy init: evita quebrar o build/pré-renderização quando a chave ainda não está configurada
+function getResend(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) return null
+  if (!resendClient) resendClient = new Resend(apiKey)
+  return resendClient
+}
 
 const EMAIL_FROM = process.env.EMAIL_FROM || 'Fixly <noreply@fixly.com.br>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -11,6 +19,11 @@ export async function sendDownloadEmail(
   productTitle: string,
   downloadUrl: string
 ) {
+  const resend = getResend()
+  if (!resend) {
+    console.warn('RESEND_API_KEY não configurada — e-mail de download não enviado')
+    return
+  }
   await resend.emails.send({
     from: EMAIL_FROM,
     to,
@@ -38,6 +51,11 @@ export async function sendDownloadEmail(
 }
 
 export async function sendWelcomeEmail(to: string, name: string) {
+  const resend = getResend()
+  if (!resend) {
+    console.warn('RESEND_API_KEY não configurada — e-mail de boas-vindas não enviado')
+    return
+  }
   await resend.emails.send({
     from: EMAIL_FROM,
     to,

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { niche, subNiche } = productIdeaSchema.parse(body)
 
-    const ideas = await generateIdeas(niche, subNiche)
+    const ideas = await generateIdeas(niche, subNiche ?? null)
 
     return NextResponse.json({ ideas })
   } catch (error) {

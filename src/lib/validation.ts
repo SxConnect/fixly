@@ -35,10 +35,13 @@ export const chapterUpdateSchema = z.object({
 })
 
 export const chapterRewriteSchema = z.object({
+  productId: z.string().min(1, 'Produto é obrigatório'),
+  chapterOrder: z.number().int().positive('Capítulo inválido'),
   instruction: z.string().min(5, 'Instrução deve ter pelo menos 5 caracteres'),
 })
 
 export const salesPageSchema = z.object({
+  productId: z.string().min(1, 'Produto é obrigatório'),
   price: z.number().positive('Preço deve ser positivo'),
   purchaseLink: z.string().url('Link de compra inválido'),
 })

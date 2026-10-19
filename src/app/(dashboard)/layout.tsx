@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
@@ -22,8 +23,14 @@ export default function DashboardLayout({
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/products" className="text-xl font-bold text-brand-600">
-            Fixly
+          <Link href="/products" aria-label="Fixly - início">
+            <Image
+              src="/logo-flixly-wordmark.png"
+              alt="Fixly"
+              width={1398}
+              height={539}
+              className="h-8 w-auto"
+            />
           </Link>
           <nav className="flex gap-1">
             {navItems.map((item) => (

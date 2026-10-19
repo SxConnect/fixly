@@ -72,7 +72,7 @@ async function generateEbook(productId: string) {
 
   // Generate each chapter
   for (let i = 0; i < outline.length; i++) {
-    await prisma.generationJob.update({
+    await prisma.generationJob.updateMany({
       where: { productId },
       data: { currentChapter: i + 1 },
     })
@@ -81,7 +81,7 @@ async function generateEbook(productId: string) {
   }
 
   // Mark as completed
-  await prisma.generationJob.update({
+  await prisma.generationJob.updateMany({
     where: { productId },
     data: { status: 'completed', progress: 100 },
   })

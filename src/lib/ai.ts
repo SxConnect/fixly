@@ -1,9 +1,21 @@
 import OpenAI from 'openai'
 
-const client = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-})
+let client: OpenAI | null = null
+
+// Lazy init: não quebra o build/pré-renderização quando a chave ainda não está configurada
+function getClient(): OpenAI {
+  if (!client) {
+    const apiKey = process.env.OPENROUTER_API_KEY
+    if (!apiKey) {
+      throw new Error('OPENROUTER_API_KEY não configurada')
+    }
+    client = new OpenAI({
+      apiKey,
+      baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    })
+  }
+  return client
+}
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant'
@@ -32,7 +44,7 @@ export async function generateText(
 
   for (const model of models) {
     try {
-      const completion = await client.chat.completions.create({
+      const completion = await getClient().chat.completions.create({
         model,
         messages,
         temperature: options?.temperature ?? 0.7,

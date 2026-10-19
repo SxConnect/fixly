@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  ),
   title: 'Fixly - Crie e venda seu ebook',
   description: 'Plataforma para criar, vender e divulgar ebooks com IA',
   manifest: '/manifest.json',
