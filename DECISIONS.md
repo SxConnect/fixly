@@ -278,3 +278,18 @@ sociais, formulário curto e design focado.
   ativa (`hasPaidPlan`). No plano gratuito o autor cria, revisa, edita, lê no
   flipbook e visualiza a página — mas não conclui a venda
 - Super admin: `sxconect@gmail.com` (role ADMIN, também em `ADMIN_EMAILS`)
+
+## Contracapa no padrão das editoras (2026-10-19)
+
+- Todo ebook agora fecha com uma **contracapa** (última página do flipbook e do
+  PDF), no formato usado por editoras de verdade:
+  - "CONTRACAPA" + o pitch do sistema ("Crie o seu ebook em um dia")
+  - resumo do que o autor recebe (12 capítulos + 2 anexos, capa, flipbook, página
+    de vendas)
+  - **QR code** com o link do sistema (gerado pelo serviço público qrserver)
+  - link em texto (`NEXT_PUBLIC_APP_URL`)
+  - faixa colorida no rodapé: "PUBLICADO COM FIXLY" + "Editado por {autor}" +
+    "Este ebook foi produzido com Fixly. Você responde pelo conteúdo."
+- A contracapa é **SVG** no flipbook (mesma paleta da capa) e uma página própria no
+  PDF editorial (`buildBackCoverSvg` + layout do react-pdf)
+- O link/QR aponta sempre para o domínio configurado em `NEXT_PUBLIC_APP_URL`

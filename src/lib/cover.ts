@@ -139,6 +139,87 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
+/** URL do QR code (serviço público gratuito) */
+export function buildQrUrl(link: string, size = 180): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=0&data=${encodeURIComponent(link)}`
+}
+
+/**
+ * Contracapa no padrão das editoras: o nome de quem publicou, a propaganda do
+ * sistema que produziu o ebook, o link e um QR code.
+ */
+export function buildBackCoverSvg(
+  concept: CoverConcept,
+  options: { author?: string; siteUrl?: string; width?: number; height?: number; responsive?: boolean } = {}
+): string {
+  const { to, accent, from } = COVER_PALETTES[concept.palette]
+  const width = options.width ?? 800
+  const height = options.height ?? 1200
+  const responsive = options.responsive !== false
+  const svgWidth = responsive ? '100%' : String(width)
+  const svgHeight = responsive ? '100%' : String(height)
+  const author = options.author || 'Fixly'
+  const siteUrl = options.siteUrl || 'https://fixly.app.br'
+  const uid = hashString(`${concept.title}|backcover`).toString(36)
+  const qr = buildQrUrl(siteUrl)
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Contracapa">
+  <defs>
+    <linearGradient id="band-${uid}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${from}"/>
+      <stop offset="100%" stop-color="${to}"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="${width}" height="${height}" fill="#faf8f3"/>
+  <rect x="0" y="${height * 0.66}" width="${width}" height="${height * 0.34}" fill="url(#band-${uid})"/>
+
+  <g text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="${width * 0.5}" y="${height * 0.12}" font-size="13" letterSpacing="2.5" fill="#9ca3af">
+      CONTRACAPA
+    </text>
+
+    <text x="${width * 0.5}" y="${height * 0.2}" font-size="26" font-weight="700" fill="#111827">
+      Crie o seu ebook
+    </text>
+    <text x="${width * 0.5}" y="${height * 0.245}" font-size="26" font-weight="700" fill="#111827">
+      em um dia
+    </text>
+
+    <text x="${width * 0.5}" y="${height * 0.3}" font-size="15" fill="#4b5563">
+      12 capítulos + 2 anexos, capa, flipbook para leitura
+    </text>
+    <text x="${width * 0.5}" y="${height * 0.33}" font-size="15" fill="#4b5563">
+      e página de vendas pronta para divulgar.
+    </text>
+
+    <g>
+      <rect x="${width * 0.5 - 95}" y="${height * 0.37}" width="190" height="190" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+      <image href="${escapeXml(qr)}" x="${width * 0.5 - 85}" y="${height * 0.38}" width="170" height="170"/>
+    </g>
+
+    <text x="${width * 0.5}" y="${height * 0.605}" font-size="14" fill="#111827" font-weight="600">
+      ${escapeXml(siteUrl.replace(/^https?:\/\//, ''))}
+    </text>
+  </g>
+
+  <g text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="${width * 0.5}" y="${height * 0.76}" font-size="12" letterSpacing="3" fill="${accent}" opacity="0.9">
+      PUBLICADO COM
+    </text>
+    <text x="${width * 0.5}" y="${height * 0.82}" font-size="34" font-weight="800" letterSpacing="6" fill="#ffffff">
+      FIXLY
+    </text>
+    <text x="${width * 0.5}" y="${height * 0.87}" font-size="14" fill="#ffffff" opacity="0.85">
+      Editado por ${escapeXml(author)}
+    </text>
+    <text x="${width * 0.5}" y="${height * 0.95}" font-size="11" fill="#ffffff" opacity="0.6">
+      Este ebook foi produzido com Fixly. Você responde pelo conteúdo.
+    </text>
+  </g>
+</svg>`
+}
+
 /** Quebra o título em linhas equilibradas (até 6 linhas) */
 export function breakTitle(title: string, maxCharsPerLine = 19): string[] {
   const words = title.split(/\s+/).filter(Boolean)

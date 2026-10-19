@@ -1,5 +1,5 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { COVER_PALETTES, type CoverConcept } from './cover'
+import { buildQrUrl, COVER_PALETTES, type CoverConcept } from './cover'
 import type { FlipbookPage } from './ebook-pages'
 
 const styles = StyleSheet.create({
@@ -179,6 +179,84 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 12,
   },
+  backPage: {
+    paddingTop: 60,
+    paddingBottom: 0,
+    paddingHorizontal: 56,
+    backgroundColor: '#faf8f3',
+    alignItems: 'center',
+    flexDirection: 'column',
+  },
+  backKicker: {
+    fontSize: 9,
+    letterSpacing: 2.5,
+    color: '#9ca3af',
+    marginBottom: 14,
+  },
+  backTitle: {
+    fontFamily: 'Times-Roman',
+    fontSize: 26,
+    color: '#111827',
+    marginBottom: 10,
+  },
+  backText: {
+    fontSize: 11,
+    color: '#4b5563',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  qrBox: {
+    padding: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  qrImage: {
+    width: 150,
+    height: 150,
+  },
+  backLink: {
+    fontSize: 12,
+    color: '#111827',
+    marginBottom: 22,
+  },
+  backBand: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0b1019',
+    paddingTop: 26,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  backBandKicker: {
+    fontSize: 9,
+    letterSpacing: 3,
+    color: '#86efac',
+    marginBottom: 6,
+  },
+  backBandTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    letterSpacing: 6,
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  backBandAuthor: {
+    fontSize: 11,
+    color: '#ffffff',
+    opacity: 0.85,
+    marginBottom: 6,
+  },
+  backBandNote: {
+    fontSize: 9,
+    color: '#ffffff',
+    opacity: 0.6,
+  },
 })
 
 function renderContent(content: string) {
@@ -268,6 +346,7 @@ export interface EbookPdfInput {
   author: string
   authorBio?: string | null
   promise?: string | null
+  siteUrl?: string
   chapters: Array<{ order: number; type: string; title: string; content: string }>
   cover?: CoverConcept | null
 }
@@ -365,6 +444,35 @@ export function createEbookPDF(input: EbookPdfInput) {
           style={styles.pageNumber}
           render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
         />
+      </Page>
+
+      {/* Contracapa (padrão das editoras) */}
+      <Page size="A4" style={styles.backPage}>
+        <Text style={styles.backKicker}>CONTRACAPA</Text>
+        <Text style={styles.backTitle}>Crie o seu ebook em um dia</Text>
+        <Text style={styles.backText}>
+          12 capítulos + 2 anexos, capa, flipbook para leitura e página de vendas pronta
+          para divulgar.
+        </Text>
+
+        <View style={styles.qrBox}>
+          <Image
+            src={buildQrUrl(input.siteUrl || 'https://fixly.app.br', 220)}
+            style={styles.qrImage}
+          />
+        </View>
+        <Text style={styles.backLink}>
+          {(input.siteUrl || 'https://fixly.app.br').replace(/^https?:\/\//, '')}
+        </Text>
+
+        <View style={styles.backBand}>
+          <Text style={styles.backBandKicker}>PUBLICADO COM</Text>
+          <Text style={styles.backBandTitle}>FIXLY</Text>
+          <Text style={styles.backBandAuthor}>Editado por {input.author}</Text>
+          <Text style={styles.backBandNote}>
+            Este ebook foi produzido com Fixly. Você responde pelo conteúdo.
+          </Text>
+        </View>
       </Page>
     </Document>
   )

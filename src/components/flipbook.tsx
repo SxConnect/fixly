@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { FlipbookPage } from '@/lib/ebook-pages'
 import { ContentBlocks } from '@/components/ebook-content'
 import { EbookCover } from '@/components/ebook-cover'
-import type { CoverConcept } from '@/lib/cover'
+import { buildBackCoverSvg, type CoverConcept } from '@/lib/cover'
 
 interface FlipbookProps {
   pages: FlipbookPage[]
@@ -16,6 +16,8 @@ interface FlipbookProps {
   initialSpread?: number
   /** Modo embutido: dentro de um card, sem sobrepor a tela */
   inline?: boolean
+  /** Site do sistema exibido na contracapa */
+  siteUrl?: string
 }
 
 /** Escala mínima antes de habilitar rolagem dentro da página */
@@ -34,6 +36,7 @@ function Sheet({
   author,
   coverConcept,
   isCover,
+  siteUrl,
 }: {
   page?: FlipbookPage
   brandColor: string
@@ -41,6 +44,7 @@ function Sheet({
   author: string
   coverConcept?: CoverConcept | null
   isCover?: boolean
+  siteUrl?: string
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -112,6 +116,32 @@ function Sheet({
               )}
               <p className="mt-6 text-xs sm:text-sm text-white/70">por {author}</p>
             </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Contracapa
+  if (page.kind === 'backcover') {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-2 bg-[#161b24]">
+        {coverConcept ? (
+          <div
+            className="h-full max-h-full w-auto shadow-[0_14px_45px_rgba(0,0,0,0.5)] overflow-hidden"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{
+              __html: buildBackCoverSvg(coverConcept, {
+                author,
+                siteUrl: siteUrl || 'https://fixly.app.br',
+              }),
+            }}
+          />
+        ) : (
+          <div className="h-full w-full flex flex-col items-center justify-center gap-3 text-center px-6">
+            <span className="text-xs tracking-[0.3em] text-white/40">PUBLICADO COM</span>
+            <span className="text-3xl font-extrabold tracking-[0.25em] text-white">FIXLY</span>
+            <p className="text-sm text-white/60">Editado por {author}</p>
           </div>
         )}
       </div>
@@ -209,6 +239,7 @@ export function Flipbook({
   onClose,
   initialSpread = 0,
   inline = false,
+  siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fixly.app.br',
 }: FlipbookProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [spread, setSpread] = useState(initialSpread)
@@ -362,6 +393,7 @@ export function Flipbook({
               author={author}
               coverConcept={coverConcept}
               isCover={pageIndex === 0}
+              siteUrl={siteUrl}
             />
           </div>
         ) : (
@@ -377,6 +409,7 @@ export function Flipbook({
                 title={title}
                 author={author}
                 coverConcept={coverConcept}
+                siteUrl={siteUrl}
               />
             </div>
 
@@ -404,6 +437,7 @@ export function Flipbook({
                       author={author}
                       coverConcept={coverConcept}
                       isCover={index === 0}
+                      siteUrl={siteUrl}
                     />
                     <div className="flipbook-shadow" />
                   </div>
@@ -414,6 +448,7 @@ export function Flipbook({
                       title={title}
                       author={author}
                       coverConcept={coverConcept}
+                      siteUrl={siteUrl}
                     />
                     <div className="flipbook-shadow flipbook-shadow-left" />
                   </div>

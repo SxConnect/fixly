@@ -74,6 +74,7 @@ export async function GET(
             author: product.profile.name,
             authorBio: product.profile.bio,
             promise: product.promise,
+            siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://fixly.app.br',
             chapters: product.chapters.map((chapter) => ({
               order: chapter.order,
               type: chapter.type,

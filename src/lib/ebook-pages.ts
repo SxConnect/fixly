@@ -1,4 +1,4 @@
-export type FlipbookPageKind = 'cover' | 'summary' | 'content'
+export type FlipbookPageKind = 'cover' | 'summary' | 'content' | 'backcover'
 
 export interface FlipbookPage {
   kind: FlipbookPageKind
@@ -146,6 +146,15 @@ export function buildFlipbookPages(input: BuildFlipbookInput): FlipbookPage[] {
       })
     })
   }
+
+  // Contracapa (padrão das editoras): quem publicou, o sistema e o link
+  pages.push({
+    kind: 'backcover',
+    title: input.title,
+    subtitle: input.author,
+    body: [],
+    pageNumber: pageNumber++,
+  })
 
   return pages
 }
