@@ -54,7 +54,7 @@ Plataforma mobile-first (PWA) para criação, venda e divulgação de ebooks com
 2. Conecte seu repositório GitHub/GitLab
 3. Importe o projeto
 
-### 2. Configurar variáveis de ambiente
+### 2. Configurar variáveis ambiente
 
 No painel da Vercel, adicione as variáveis de ambiente:
 
