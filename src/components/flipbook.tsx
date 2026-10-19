@@ -1,8 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FlipbookPage } from '@/lib/ebook-pages'
 import { toTextLines } from '@/lib/ebook-pages'
+
+/** Escala mínima antes de habilitar rolagem dentro da página */
+const MIN_SCALE = 0.62
 
 interface FlipbookProps {
   pages: FlipbookPage[]
@@ -146,6 +149,42 @@ function Sheet({
   author: string
   isCover?: boolean
 }) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  const [scrollable, setScrollable] = useState(false)
+
+  // Ajusta a escala da página para o conteúdo caber inteiro (nada escondido)
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const content = contentRef.current
+    if (!viewport || !content) return
+
+    const fit = () => {
+      const available = viewport.clientHeight
+      const needed = content.scrollHeight
+      if (!available || !needed) return
+
+      if (needed <= available) {
+        setScrollable(false)
+        setScale((current) => (current === 1 ? current : 1))
+        return
+      }
+
+      const exact = available / needed
+      const next = Math.max(MIN_SCALE, exact)
+      setScrollable(exact < MIN_SCALE)
+      setScale((current) => (Math.abs(current - next) > 0.005 ? next : current))
+    }
+
+    fit()
+
+    const observer = new ResizeObserver(fit)
+    observer.observe(viewport)
+    observer.observe(content)
+    return () => observer.disconnect()
+  }, [page])
+
   if (!page) {
     return <div className="h-full w-full bg-[#f7f5f0]" />
   }
@@ -162,17 +201,34 @@ function Sheet({
   }
 
   return (
-    <div className="h-full w-full bg-[#fdfcf9] px-6 sm:px-9 py-6 sm:py-8 flex flex-col">
-      <div className="flex-1 overflow-hidden">
-        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-400">
-          {page.kind === 'summary' ? 'Sumário' : `Capítulo ${page.chapterOrder ?? ''}`}
-        </p>
-        <h2 className="mt-1 mb-4 text-lg sm:text-2xl font-bold text-gray-900 leading-snug">
-          {page.title}
-        </h2>
-        <PageBody body={page.body} />
+    <div className="h-full w-full bg-[#fdfcf9] flex flex-col overflow-hidden">
+      <div
+        ref={viewportRef}
+        className={`flex-1 overflow-hidden relative ${scrollable ? 'overflow-y-auto' : ''}`}
+      >
+        <div
+          ref={contentRef}
+          className="px-6 sm:px-9 py-6 sm:py-8 origin-top-left"
+          style={{
+            transform: `scale(${scale}) translateX(${((1 - scale) / (2 * scale)) * 100}%)`,
+          }}
+        >
+          <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-400">
+            {page.kind === 'summary' ? 'Sumário' : `Capítulo ${page.chapterOrder ?? ''}`}
+          </p>
+          <h2 className="mt-1 mb-4 text-lg sm:text-2xl font-bold text-gray-900 leading-snug">
+            {page.title}
+          </h2>
+          <PageBody body={page.body} />
+        </div>
+
+        {scrollable && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#fdfcf9] via-[#fdfcf9]/80 to-transparent flex items-end justify-center pb-2">
+            <span className="text-[10px] text-gray-400">↓ role para ver o resto</span>
+          </div>
+        )}
       </div>
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] sm:text-xs text-gray-400">
+      <div className="mt-4 pt-3 px-6 sm:px-9 border-t border-gray-100 flex items-center justify-between text-[10px] sm:text-xs text-gray-400">
         <span className="truncate pr-3">{title}</span>
         <span>{page.pageNumber}</span>
       </div>

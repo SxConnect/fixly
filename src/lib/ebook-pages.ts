@@ -24,7 +24,7 @@ export interface BuildFlipbookInput {
   chapters: FlipbookChapter[]
 }
 
-const MAX_CHARS_PER_PAGE = 720
+const MAX_CHARS_PER_PAGE = 620
 
 /** Divide um texto em blocos legíveis (parágrafos), respeitando títulos e listas. */
 function toBlocks(text: string): string[] {
@@ -159,6 +159,7 @@ export function toTextLines(text: string): TextLine[] {
   const lines: TextLine[] = []
   const rawLines = text.replace(/\r\n/g, '\n').split('\n')
   let listBuffer: string[] = []
+  let paragraphBuffer: string[] = []
 
   const flushList = () => {
     if (listBuffer.length > 0) {
@@ -167,34 +168,48 @@ export function toTextLines(text: string): TextLine[] {
     }
   }
 
+  // Linhas de texto corrido viram um único parágrafo (a IA às vezes quebra
+  // o parágrafo no meio sem deixar linha em branco)
+  const flushParagraph = () => {
+    if (paragraphBuffer.length > 0) {
+      lines.push({ type: 'paragraph', text: paragraphBuffer.join(' ') })
+      paragraphBuffer = []
+    }
+  }
+
   for (const raw of rawLines) {
     const line = raw.trim()
     if (!line) {
       flushList()
+      flushParagraph()
       continue
     }
 
     if (/^#{1,4}\s+/.test(line)) {
       flushList()
+      flushParagraph()
       lines.push({ type: 'heading', text: line.replace(/^#{1,4}\s+/, '') })
       continue
     }
 
     if (/^[-*•]\s+/.test(line)) {
+      flushParagraph()
       listBuffer.push(line.replace(/^[-*•]\s+/, ''))
       continue
     }
 
     if (/^>\s?/.test(line)) {
       flushList()
+      flushParagraph()
       lines.push({ type: 'quote', text: line.replace(/^>\s?/, '') })
       continue
     }
 
     flushList()
-    lines.push({ type: 'paragraph', text: line })
+    paragraphBuffer.push(line)
   }
 
   flushList()
+  flushParagraph()
   return lines
 }

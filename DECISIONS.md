@@ -132,3 +132,14 @@
 - **500 na página pública**: o botão "Comprar" (Server Component) tinha `onClick`
   — proibido em Server Components. Extraído para `_buy-button.tsx` (client)
 - A página pública agora mostra "Folhear o ebook" (flipbook) antes da compra
+
+## Ajuste: conteúdo da página do flipbook (2026-10-19)
+
+- A página usava `overflow: hidden` sem medir o conteúdo: textos mais longos que
+  a altura da folha eram **cortados** (leitor perdia o final do capítulo)
+- Agora cada folha **mede o próprio conteúdo** (`ResizeObserver`) e aplica uma
+  escala automática para caber inteiro na página (piso de 62% por legibilidade)
+- Se ainda assim o texto for grande demais para o limite, a página fica
+  rolável e mostra o aviso "↓ role para ver o resto" — nada fica escondido
+- Paginação mais densa: ~620 caracteres por página (era 720) e parágrafos com
+  quebras de linha no meio voltam a ser um parágrafo único
