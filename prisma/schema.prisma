@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       Profile?
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  name          String
+  bio           String?
+  photoUrl      String?
+  signatureUrl  String?
+  brandColor    String   @default("#16a34a")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products      Product[]
+  salesPages    SalesPage[]
+  instagramAccount InstagramAccount?
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  profileId     String
+  niche         String
+  subNiche      String?
+  title         String
+  promise       String
+  audience      String?
+  status        String   @default("draft") // draft, generating, ready, published
+  price         Float?
+  purchaseLink  String?
+  slug          String?  @unique
+  coverChoice   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  ideas         ProductIdea[]
+  chapters      Chapter[]
+  covers        Cover[]
+  generationJobs GenerationJob[]
+  salesPage     SalesPage?
+  sales         Sales[]
+  promoAssets   PromoAsset[]
+  videoScripts  VideoScript[]
+}
+
+model ProductIdea {
+  id            String   @id @default(cuid())
+  productId     String
+  title         String
+  promise       String
+  audience      String?
+  selected      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Chapter {
+  id            String   @id @default(cuid())
+  productId     String
+  order         Int
+  type          String   @default("chapter") // chapter, appendix
+  title         String
+  content       String   @db.Text
+  note          Float?
+  attempts      Int      @default(0)
+  status        String   @default("pending") // pending, generating, reviewing, approved, needs_rewrite
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, order])
+}
+
+model Cover {
+  id            String   @id @default(cuid())
+  productId     String
+  imageUrl      String
+  option        Int      // 1 or 2
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model GenerationJob {
+  id            String   @id @default(cuid())
+  productId     String
+  status        String   @default("pending") // pending, running, completed, failed
+  progress      Int      @default(0)
+  totalChapters Int      @default(14)
+  currentChapter Int     @default(0)
+  error         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model UsageLimit {
+  id            String   @id @default(cuid())
+  profileId     String   @unique
+  weekStart     DateTime
+  productCount  Int      @default(0)
+  ideasCount    Int      @default(0)
+  adjustmentsCount Int   @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model SalesPage {
+  id            String   @id @default(cuid())
+  productId     String   @unique
+  profileId     String
+  slug          String   @unique
+  published     Boolean  @default(false)
+  ogTitle       String?
+  ogDescription String?
+  ogImageUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  events        SalesPageEvent[]
+}
+
+model SalesPageEvent {
+  id            String   @id @default(cuid())
+  salesPageId   String
+  type          String   // visit, click
+  createdAt     DateTime @default(now())
+
+  salesPage     SalesPage @relation(fields: [salesPageId], references: [id], onDelete: Cascade)
+}
+
+model Sales {
+  id            String   @id @default(cuid())
+  productId     String
+  platform      String   // kiwify, hotmart
+  externalId    String
+  buyerEmail    String
+  buyerName     String?
+  amount        Float
+  status        String   @default("approved") // approved, refunded, chargeback
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  downloadLinks DownloadLink[]
+
+  @@unique([platform, externalId])
+}
+
+model DownloadLink {
+  id            String   @id @default(cuid())
+  salesId       String
+  token         String   @unique
+  maxUses       Int      @default(30)
+  useCount      Int      @default(0)
+  revoked       Boolean  @default(false)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  sales         Sales    @relation(fields: [salesId], references: [id], onDelete: Cascade)
+}
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  platform      String
+  eventType     String
+  payload       Json
+  processed     Boolean  @default(false)
+  idempotencyKey String?  @unique
+  createdAt     DateTime @default(now())
+}
+
+model PromoAsset {
+  id            String   @id @default(cuid())
+  productId     String
+  type          String   // facebook_post, facebook_image, dm_message
+  content       String   @db.Text
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model VideoScript {
+  id            String   @id @default(cuid())
+  productId     String
+  format        String   // reel, story, tiktok, carousel, talking_head
+  title         String
+  script        String   @db.Text
+  flowPrompts   String   @db.Text
+  createdAt     DateTime @default(now())
+
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model InstagramAccount {
+  id            String   @id @default(cuid())
+  profileId     String   @unique
+  accessToken   String
+  accountName   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  scheduledPosts ScheduledPost[]
+}
+
+model ScheduledPost {
+  id            String   @id @default(cuid())
+  accountId     String
+  content       String   @db.Text
+  imageUrl      String?
+  scheduledFor  DateTime
+  status        String   @default("scheduled") // scheduled, published, failed
+  createdAt     DateTime @default(now())
+
+  account       InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model RateLimitEntry {
+  id            String   @id @default(cuid())
+  identifier    String
+  action        String
+  createdAt     DateTime @default(now())
+
+  @@index([identifier, action, createdAt])
+}
